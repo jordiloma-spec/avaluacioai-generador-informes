@@ -108,7 +108,8 @@ const ProfileTab: React.FC<{
   data: AppData;
   onSaveData: (d: AppData) => void; // This will trigger a full data reload in App.tsx
   onLogout: () => void; 
-}> = ({ user, onUpdateUser, data, onSaveData, onLogout }) => {
+  onBulkUpdateStudentCourse: (newCourse: Course) => Promise<void>; // New prop
+}> = ({ user, onUpdateUser, data, onSaveData, onLogout, onBulkUpdateStudentCourse }) => {
   const { supabase } = useSession();
   const [form, setForm] = useState({ 
     name: user.name, 
@@ -117,6 +118,15 @@ const ProfileTab: React.FC<{
   });
   const [promoCode, setPromoCode] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+
+  // Sync form state with user prop when user changes
+  useEffect(() => {
+    setForm({
+      name: user.name,
+      course: user.currentCourse,
+      gender: user.gender,
+    });
+  }, [user]);
 
   useEffect(() => {
     setIsDirty(
@@ -130,9 +140,7 @@ const ProfileTab: React.FC<{
     // Check if course changed
     if (form.course !== user.currentCourse) {
       if (data.students.length > 0 && window.confirm(`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`)) {
-         // This will trigger a full data reload in App.tsx after update
-         // For now, we'll just update the user profile and let App.tsx handle the student update if needed.
-         // The student update logic should be handled by dataActions.students.update in StudentsTab.
+         await onBulkUpdateStudentCourse(form.course); // Call the new prop to update students
       }
     }
 
@@ -986,6 +994,14 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
 export const Settings: React.FC<SettingsProps> = ({ data, user, onSave, onUpdateUser, onLogout, dataActions }) => {
   const [activeTab, setActiveTab] = useState<Tab>('profile');
 
+  // Function to handle bulk update of student courses
+  const handleBulkUpdateStudentCourse = async (newCourse: Course) => {
+    if (!data.students || data.students.length === 0) return;
+    for (const student of data.students) {
+      await dataActions.students.update({ ...student, course: newCourse });
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-8 animate-fade-in">
       {/* Sidebar Navigation */}
@@ -1015,7 +1031,7 @@ export const Settings: React.FC<SettingsProps> = ({ data, user, onSave, onUpdate
             {activeTab === 'blocks' && 'Gestió de Blocs i Continguts'}
          </h2>
          
-         {activeTab === 'profile' && <ProfileTab user={user} onUpdateUser={onUpdateUser} data={data} onSaveData={onSave} onLogout={onLogout} />}
+         {activeTab === 'profile' && <ProfileTab user={user} onUpdateUser={onUpdateUser} data={data} onSaveData={onSave} onLogout={onLogout} onBulkUpdateStudentCourse={handleBulkUpdateStudentCourse} />}
          {activeTab === 'students' && <StudentsTab data={data} defaultCourse={user.currentCourse} dataActions={dataActions} />}
          {activeTab === 'subjects' && <SubjectsTab data={data} dataActions={dataActions} />}
          {activeTab === 'blocks' && <BlocksTab data={data} dataActions={dataActions} />}
