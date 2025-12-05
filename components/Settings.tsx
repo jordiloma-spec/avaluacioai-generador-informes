@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile } from '../types';
 import { generateUniqueId } from '../services/storageService'; // Keep generateUniqueId
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag } from 'lucide-react';
-import { useSession } from './SessionContextProvider'; // Import useSession hook
+import { useSession } from '../src/components/SessionContextProvider'; // Corrected import path
 
 interface SettingsProps {
   data: AppData;
