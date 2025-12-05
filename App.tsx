@@ -4,7 +4,7 @@ import { getStoredData, saveStoredData } from './services/storageService';
 import { Evaluator } from './components/Evaluator';
 import { Settings } from './components/Settings';
 import { Login } from './components/Login';
-import { SessionContextProvider, useSession } from './components/SessionContextProvider'; // Import context provider and hook
+import { SessionContextProvider, useSession } from './src/components/SessionContextProvider'; // Ruta corregida
 import { PenTool, Settings as SettingsIcon, Crown } from 'lucide-react';
 
 function AppContent() {
