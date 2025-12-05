@@ -15,16 +15,17 @@ import {
 } from './src/services/dataService'; // Ruta corregida
 
 function AppContent() {
-  const { session, user, profile, loading, updateUserProfile, logout } = useSession();
+  const { session, user, profile, loading: sessionLoading, updateUserProfile, logout } = useSession(); // Renamed 'loading' to 'sessionLoading'
   const [data, setData] = useState<AppData | null>(null);
+  const [appDataLoading, setAppDataLoading] = useState(true); // New state for app data loading
   const [currentView, setCurrentView] = useState<'evaluator' | 'settings'>('evaluator');
 
   // Function to fetch all user data from Supabase
   const loadAppData = useCallback(async (userId: string) => {
-    setLoading(true); // Set loading true while fetching app data
+    setAppDataLoading(true); // Set app data loading true
     const fetchedData = await fetchAllUserData(userId);
     setData(fetchedData);
-    setLoading(false); // Set loading false after fetching app data
+    setAppDataLoading(false); // Set app data loading false
   }, []);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ function AppContent() {
       loadAppData(profile.id);
     } else {
       setData(null); // Clear data if no profile
+      setAppDataLoading(false); // Ensure app data loading is false if no user
     }
   }, [profile, user, loadAppData]);
 
@@ -157,7 +159,7 @@ function AppContent() {
   };
 
 
-  if (loading || !data) { // Check for both session loading and app data loading
+  if (sessionLoading || appDataLoading || !data) { // Check for both session loading and app data loading
     return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades de l'aplicació...</div>;
   }
 
