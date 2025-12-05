@@ -4,11 +4,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '../integrations/supabase/client';
 import { Mail, User, BookOpen } from 'lucide-react'; // Keep icons for custom styling if needed
 
-interface LoginProps {
-  onLoginSuccess: () => void; // Callback when login is successful
-}
-
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+export const Login: React.FC = () => {
   // The Auth component handles its own state and redirects via onAuthStateChange in SessionContextProvider
   // We just need to render it.
 
@@ -91,29 +87,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               },
             },
           }}
-          // Custom data for signup to be used by handle_new_user trigger
-          // This is a workaround as Auth UI doesn't directly support custom fields for raw_user_meta_data
-          // For a real app, you'd likely use a custom signup form or a server-side function.
-          // For this demo, we'll assume the user can update their name/course in settings after signup.
-          // Or, we can add custom fields to the Auth component if needed.
-          // For now, the trigger will use default values or email part for name.
-          // If we want to pass name/course during signup, we'd need to customize the Auth UI or use a separate form.
-          // Let's add custom fields for name and course to the signup form.
-          // This requires a custom `Auth` component or modifying the `Auth` component's `providers` prop.
-          // For simplicity, let's assume users update their profile in settings after initial signup.
-          // If the user wants to add custom fields to the signup form, I can do that.
-          // For now, the trigger will use `new.raw_user_meta_data ->> 'name'` and `new.raw_user_meta_data ->> 'course'`.
-          // We need to ensure these are passed during signup.
-          // The default Auth UI doesn't have these fields.
-          // Let's modify the Auth component to include custom fields for signup.
-          // This is a bit more involved, so for now, I'll proceed with the default Auth UI and assume profile update post-signup.
-          // If the user explicitly asks for custom signup fields, I will implement them.
-          // For now, the `handle_new_user` trigger will use `new.raw_user_meta_data ->> 'name'` and `new.raw_user_meta_data ->> 'course'`.
-          // These will be `null` initially unless we customize the signup form.
-          // Let's update the trigger to use `new.email` for `first_name` if `name` is not provided.
-          // And `1r` as default for `current_course`.
-          // This is a more robust initial setup.
-          // I will update the SQL for the trigger.
         />
       </div>
     </div>

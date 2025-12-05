@@ -39,7 +39,7 @@ function AppContent() {
   }
 
   if (!session || !profile) {
-    return <Login onLoginSuccess={() => { /* Handled by SessionContextProvider */ }} />;
+    return <Login />;
   }
 
   if (!data) return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades...</div>;
