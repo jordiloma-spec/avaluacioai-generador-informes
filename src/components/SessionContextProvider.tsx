@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext, ReactNode } from
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
 import { UserProfile, Course } from '../types';
-import { getStoredData, saveStoredData } from '../services/storageService';
+import { getLocalUserUsageData, saveLocalUserUsageData } from '../services/storageService'; // Updated import
 
 interface SessionContextType {
   session: Session | null;
@@ -49,16 +49,13 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       fetchError = e; // Catch any unexpected errors
     }
 
-    if (fetchError) {
-      console.error('fetchUserProfile: Error or no profile found:', fetchError);
-      // If error is 'PGRST116' (no rows found), it's expected for new users without profiles
-      // We'll proceed with default values.
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine for new users
+      console.error('fetchUserProfile: Error fetching profile from Supabase:', fetchError);
     }
     console.log('fetchUserProfile: Profile data from Supabase (after fetch attempt):', profileData);
 
     // Load local usage data (for premium status and daily usage)
-    const storedDataKey = `user_premium_daily_usage_${supabaseUser.id}`;
-    const localUsage = JSON.parse(localStorage.getItem(storedDataKey) || '{}');
+    const localUsage = getLocalUserUsageData(supabaseUser.id);
     console.log('fetchUserProfile: Local usage data:', localUsage);
 
     const userProfile: UserProfile = {
@@ -67,8 +64,8 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       name: profileData?.first_name || supabaseUser.email?.split('@')[0] || 'Usuari',
       currentCourse: (profileData?.current_course as Course) || '1r',
       gender: profileData?.gender === 'mestre' ? 'mestre' : 'mestra', // Default to 'mestra'
-      isPremium: localUsage.isPremium || false,
-      dailyUsage: localUsage.dailyUsage || { date: new Date().toISOString().split('T')[0], count: 0 },
+      isPremium: localUsage?.isPremium || false,
+      dailyUsage: localUsage?.dailyUsage || { date: new Date().toISOString().split('T')[0], count: 0 },
     };
     setProfile(userProfile);
     console.log('fetchUserProfile: Profile set:', userProfile);
@@ -100,12 +97,12 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
     console.log('updateUserProfile: Profile updated in Supabase.');
 
-    const storedDataKey = `user_premium_daily_usage_${user.id}`;
+    // Update local usage data
     const newLocalUsage = {
       isPremium: updatedProfile.isPremium !== undefined ? updatedProfile.isPremium : profile.isPremium,
       dailyUsage: updatedProfile.dailyUsage || profile.dailyUsage,
     };
-    localStorage.setItem(storedDataKey, JSON.stringify(newLocalUsage));
+    saveLocalUserUsageData(user.id, newLocalUsage);
     console.log('updateUserProfile: Local usage data updated:', newLocalUsage);
 
     setProfile(prev => ({ ...prev!, ...updatedProfile }));

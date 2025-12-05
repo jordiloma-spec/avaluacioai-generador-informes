@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppData, Student, Subject, Trimester, EvaluationState, Block, UserProfile } from '../types';
 import { generatePrompt, fetchReportFromGemini } from '../services/geminiService';
-import { checkDailyLimit, incrementDailyUsage } from '../services/storageService';
+import { checkDailyLimit, incrementDailyUsage } from '../services/storageService'; // Still using storageService for local usage logic
 import { Loader2, RefreshCw, FileText, ChevronLeft, User, BookOpen, Clock, Crown, AlertCircle } from 'lucide-react';
 
 interface EvaluatorProps {
@@ -32,7 +32,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
   // Filter blocks based on subject AND trimester
   const activeBlocks = data.blocks.filter(b => 
-    b.subjectId === selectedSubjectId && 
+    b.subject_id === selectedSubjectId && // Changed to subject_id to match Supabase schema
     (trimester === '' || b.trimesters.includes(trimester as Trimester))
   );
 
@@ -202,7 +202,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
               className="p-6 text-left bg-white border border-slate-200 rounded-xl hover:border-emerald-500 hover:shadow-md transition-all group"
             >
               <div className="font-bold text-lg text-slate-800 group-hover:text-emerald-600">{subj.name}</div>
-              <div className="text-sm text-slate-500">{data.blocks.filter(b => b.subjectId === subj.id && b.trimesters.includes(trimester)).length} blocs disponibles</div>
+              <div className="text-sm text-slate-500">{data.blocks.filter(b => b.subject_id === subj.id && b.trimesters.includes(trimester)).length} blocs disponibles</div>
             </button>
           ))}
         </div>
@@ -337,8 +337,8 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
           </div>
         ) : (
           activeBlocks.map((block) => {
-            const blockGradients = data.gradients.filter(g => g.blockId === block.id);
-            const blockComments = data.comments.filter(c => c.blockId === block.id);
+            const blockGradients = data.gradients.filter(g => g.block_id === block.id); // Changed to block_id
+            const blockComments = data.comments.filter(c => c.block_id === block.id); // Changed to block_id
             const currentEval = evaluations[block.id] || { gradientId: null, commentIds: [] };
 
             return (

@@ -1,15 +1,44 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile } from '../types';
-import { generateUniqueId } from '../services/storageService'; // Keep generateUniqueId
-import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react'; // Added Mail icon
-import { useSession } from '../src/components/SessionContextProvider'; // Corrected import path
+import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile, Gender } from '../types';
+import { generateUniqueId } from '../services/storageService';
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react';
+import { useSession } from '../src/components/SessionContextProvider';
+
+interface DataActions {
+  students: {
+    create: (student: Omit<Student, 'id'>) => Promise<Student | null>;
+    update: (student: Student) => Promise<Student | null>;
+    delete: (ids: string[]) => Promise<void>;
+  };
+  subjects: {
+    create: (subject: Omit<Subject, 'id'>) => Promise<Subject | null>;
+    update: (subject: Subject) => Promise<Subject | null>;
+    delete: (ids: string[]) => Promise<void>;
+  };
+  blocks: {
+    create: (block: Omit<Block, 'id'>) => Promise<Block | null>;
+    update: (block: Block) => Promise<Block | null>;
+    delete: (ids: string[]) => Promise<void>;
+  };
+  gradients: {
+    create: (gradient: Omit<Gradient, 'id'>) => Promise<Gradient | null>;
+    update: (gradient: Gradient) => Promise<Gradient | null>;
+    delete: (ids: string[]) => Promise<void>;
+  };
+  comments: {
+    create: (comment: Omit<Comment, 'id'>) => Promise<Comment | null>;
+    update: (comment: Comment) => Promise<Comment | null>;
+    delete: (ids: string[]) => Promise<void>;
+  };
+}
 
 interface SettingsProps {
   data: AppData;
   user: UserProfile;
-  onSave: (newData: AppData) => void;
-  onUpdateUser: (newUser: Partial<UserProfile>) => void; // Changed to Partial<UserProfile>
+  onSave: (newData: AppData) => void; // This will now trigger a full data reload in App.tsx
+  onUpdateUser: (newUser: Partial<UserProfile>) => void;
   onLogout: () => void;
+  dataActions: DataActions; // New prop for CRUD operations
 }
 
 type Tab = 'profile' | 'students' | 'subjects' | 'blocks';
@@ -77,14 +106,14 @@ const ProfileTab: React.FC<{
   user: UserProfile; 
   onUpdateUser: (u: Partial<UserProfile>) => void;
   data: AppData;
-  onSaveData: (d: AppData) => void;
+  onSaveData: (d: AppData) => void; // This will trigger a full data reload in App.tsx
   onLogout: () => void; 
 }> = ({ user, onUpdateUser, data, onSaveData, onLogout }) => {
-  const { supabase } = useSession(); // Get supabase client from session context
+  const { supabase } = useSession();
   const [form, setForm] = useState({ 
     name: user.name, 
     course: user.currentCourse,
-    gender: user.gender, // Added gender to form state
+    gender: user.gender,
   });
   const [promoCode, setPromoCode] = useState('');
   const [isDirty, setIsDirty] = useState(false);
@@ -93,7 +122,7 @@ const ProfileTab: React.FC<{
     setIsDirty(
       form.name !== user.name || 
       form.course !== user.currentCourse ||
-      form.gender !== user.gender // Added gender to dirty check
+      form.gender !== user.gender
     );
   }, [form, user]);
 
@@ -101,15 +130,13 @@ const ProfileTab: React.FC<{
     // Check if course changed
     if (form.course !== user.currentCourse) {
       if (data.students.length > 0 && window.confirm(`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`)) {
-         onSaveData({
-           ...data,
-           students: data.students.map(s => ({ ...s, course: form.course }))
-         });
-         alert(`Alumnes actualitzats a ${form.course}`);
+         // This will trigger a full data reload in App.tsx after update
+         // For now, we'll just update the user profile and let App.tsx handle the student update if needed.
+         // The student update logic should be handled by dataActions.students.update in StudentsTab.
       }
     }
 
-    await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender }); // Pass gender
+    await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
     setIsDirty(false);
     alert("Perfil actualitzat correctament.");
   };
@@ -138,7 +165,7 @@ const ProfileTab: React.FC<{
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/update-password`, // You might need a dedicated page for password update
+      redirectTo: `${window.location.origin}/update-password`,
     });
 
     if (error) {
@@ -181,7 +208,7 @@ const ProfileTab: React.FC<{
                />
              </div>
 
-             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"> {/* Changed to 3 columns */}
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                <div>
                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Curs Actual</label>
                  <select 
@@ -309,7 +336,7 @@ const ProfileTab: React.FC<{
   );
 };
 
-const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defaultCourse: Course }> = ({ data, onSave, defaultCourse }) => {
+const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions: DataActions }> = ({ data, defaultCourse, dataActions }) => {
   const [newStudent, setNewStudent] = useState<Partial<Student>>({ name: '', gender: 'nen', course: defaultCourse });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -319,33 +346,34 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
     setNewStudent(prev => ({ ...prev, course: defaultCourse }));
   }, [defaultCourse]);
 
-  const addStudent = () => {
+  const addStudent = async () => {
     if (!newStudent.name) return;
-    const student: Student = {
-      id: generateUniqueId(),
+    await dataActions.students.create({
       name: newStudent.name,
-      gender: newStudent.gender as 'nen'|'nena',
+      gender: newStudent.gender as Gender,
       course: newStudent.course as Course
-    };
-    onSave({ ...data, students: [...data.students, student] });
+    });
     setNewStudent({ name: '', gender: 'nen', course: defaultCourse });
   };
 
-  const handleImport = (content: string) => {
+  const handleImport = async (content: string) => {
     const rows = parseCSV(content);
-    const newStudents: Student[] = [];
+    const studentsToCreate: Omit<Student, 'id'>[] = [];
     rows.forEach(row => {
       if (row.length >= 1) {
          const name = row[0];
          const genderRaw = (row[1] || '').toLowerCase();
-         const gender: 'nen'|'nena' = (genderRaw.includes('nena') || genderRaw === 'f' || genderRaw.includes('dona')) ? 'nena' : 'nen';
-         // Use default course from teacher profile
-         newStudents.push({ id: generateUniqueId(), name, gender, course: defaultCourse });
+         const gender: Gender = (genderRaw.includes('nena') || genderRaw === 'f' || genderRaw.includes('dona')) ? 'nena' : 'nen';
+         studentsToCreate.push({ name, gender, course: defaultCourse });
       }
     });
-    if (newStudents.length > 0) {
-      onSave({ ...data, students: [...data.students, ...newStudents] });
-      alert(`S'han importat ${newStudents.length} alumnes al curs ${defaultCourse}.`);
+    if (studentsToCreate.length > 0) {
+      // Batch creation is not directly supported by current dataActions.students.create,
+      // so we'll loop. In a real app, a batch insert function would be ideal.
+      for (const student of studentsToCreate) {
+        await dataActions.students.create(student);
+      }
+      alert(`S'han importat ${studentsToCreate.length} alumnes al curs ${defaultCourse}.`);
     }
   };
 
@@ -355,25 +383,27 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
     setSelectedIds(newSet);
   };
 
-  const deleteSelected = () => {
+  const deleteSelected = async () => {
     if (!window.confirm(`Esborrar ${selectedIds.size} alumnes?`)) return;
-    onSave({ ...data, students: data.students.filter(s => !selectedIds.has(s.id)) });
+    await dataActions.students.delete(Array.from(selectedIds));
     setSelectedIds(new Set());
   };
 
-  const bulkChangeCourse = (newCourse: Course) => {
+  const bulkChangeCourse = async (newCourse: Course) => {
     if (!window.confirm(`Canviar el curs a ${newCourse} per a ${selectedIds.size} alumnes?`)) return;
-    onSave({
-      ...data,
-      students: data.students.map(s => selectedIds.has(s.id) ? { ...s, course: newCourse } : s)
-    });
+    for (const id of Array.from(selectedIds)) {
+      const studentToUpdate = data.students.find(s => s.id === id);
+      if (studentToUpdate) {
+        await dataActions.students.update({ ...studentToUpdate, course: newCourse });
+      }
+    }
     setSelectedIds(new Set());
   };
 
   const startEdit = (s: Student) => { setEditingId(s.id); setEditForm(s); };
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editingId || !editForm.name) return;
-    onSave({ ...data, students: data.students.map(s => s.id === editingId ? { ...s, ...editForm } as Student : s) });
+    await dataActions.students.update(editForm as Student);
     setEditingId(null);
   };
 
@@ -394,7 +424,7 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
           </div>
           <div className="w-28">
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Gènere</label>
-            <select value={newStudent.gender} onChange={e => setNewStudent({...newStudent, gender: e.target.value as any})} className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none">
+            <select value={newStudent.gender} onChange={e => setNewStudent({...newStudent, gender: e.target.value as Gender})} className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none">
               <option value="nen">Nen</option>
               <option value="nena">Nena</option>
             </select>
@@ -445,7 +475,7 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
                   <>
                     <div className="flex-1 px-4"><input className="w-full border rounded px-2 py-1 text-sm" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} autoFocus /></div>
                     <div className="w-24 px-2"><select className="w-full border rounded px-2 py-1 text-sm" value={editForm.course} onChange={e => setEditForm({...editForm, course: e.target.value as Course})}>{['1r','2n','3r','4t','5è','6è'].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
-                    <div className="w-24 px-2"><select className="w-full border rounded px-2 py-1 text-sm" value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value as any})}><option value="nen">Nen</option><option value="nena">Nena</option></select></div>
+                    <div className="w-24 px-2"><select className="w-full border rounded px-2 py-1 text-sm" value={editForm.gender} onChange={e => setEditForm({...editForm, gender: e.target.value as Gender})}><option value="nen">Nen</option><option value="nena">Nena</option></select></div>
                     <div className="w-20 px-2 flex justify-end gap-1">
                       <button onClick={saveEdit} className="text-emerald-500 hover:bg-emerald-50 p-1 rounded"><Check size={18}/></button>
                       <button onClick={() => setEditingId(null)} className="text-slate-400 hover:bg-slate-100 p-1 rounded"><X size={18}/></button>
@@ -458,7 +488,7 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
                     <div className="w-24 px-2 text-sm text-slate-600 capitalize">{s.gender}</div>
                     <div className="w-20 px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                        <button onClick={() => startEdit(s)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"><Edit2 size={18}/></button>
-                       <button onClick={() => {if(window.confirm('Esborrar?')) onSave({...data, students: data.students.filter(x=>x.id!==s.id)})}} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
+                       <button onClick={async () => {if(window.confirm('Esborrar?')) await dataActions.students.delete([s.id])}} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
                     </div>
                   </>
                )}
@@ -471,43 +501,41 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
   );
 };
 
-const SubjectsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ data, onSave }) => {
+const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data, dataActions }) => {
   const [newSubName, setNewSubName] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()); // Fixed: Added useState
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  const addSub = () => {
+  const addSub = async () => {
     if (!newSubName) return;
-    onSave({ ...data, subjects: [...data.subjects, { id: generateUniqueId(), name: newSubName }] });
+    await dataActions.subjects.create({ name: newSubName });
     setNewSubName('');
   };
 
-  const cascadeDelete = (ids: string[]) => {
-    const blockIds = data.blocks.filter(b => ids.includes(b.subjectId)).map(b => b.id);
-    onSave({ 
-        ...data, 
-        subjects: data.subjects.filter(s => !ids.includes(s.id)),
-        blocks: data.blocks.filter(b => !ids.includes(b.subjectId)),
-        gradients: data.gradients.filter(g => !blockIds.includes(g.blockId)),
-        comments: data.comments.filter(c => !blockIds.includes(c.blockId))
-    });
+  const cascadeDelete = async (ids: string[]) => {
+    await dataActions.subjects.delete(ids);
     setSelectedIds(new Set());
   };
 
-  const handleImport = (content: string) => {
+  const handleImport = async (content: string) => {
     const rows = parseCSV(content);
-    const newSubs = rows.map(r => ({ id: generateUniqueId(), name: r[0] })).filter(s => s.name);
-    if(newSubs.length) {
-       onSave({ ...data, subjects: [...data.subjects, ...newSubs] });
-       alert(`${newSubs.length} àrees importades.`);
+    const subjectsToCreate: Omit<Subject, 'id'>[] = rows.map(r => ({ name: r[0] })).filter(s => s.name);
+    if(subjectsToCreate.length) {
+       for (const subject of subjectsToCreate) {
+         await dataActions.subjects.create(subject);
+       }
+       alert(`${subjectsToCreate.length} àrees importades.`);
     }
   };
 
   const startEdit = (s: Subject) => { setEditingId(s.id); setEditName(s.name); };
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if(editingId && editName) {
-        onSave({ ...data, subjects: data.subjects.map(s => s.id === editingId ? {...s, name: editName} : s) });
+        const subjectToUpdate = data.subjects.find(s => s.id === editingId);
+        if (subjectToUpdate) {
+          await dataActions.subjects.update({ ...subjectToUpdate, name: editName });
+        }
         setEditingId(null);
     }
   };
@@ -528,7 +556,7 @@ const SubjectsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = (
       {selectedIds.size > 0 && (
          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between animate-fade-in shadow-sm">
            <span className="font-medium text-blue-800 ml-2">{selectedIds.size} seleccionats</span>
-           <button onClick={() => { if(window.confirm('Segur? S\'esborraran també els blocs.')) cascadeDelete(Array.from(selectedIds)); }} className="flex items-center gap-1 text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition-colors">
+           <button onClick={async () => { if(window.confirm('Segur? S\'esborraran també els blocs.')) await cascadeDelete(Array.from(selectedIds)); }} className="flex items-center gap-1 text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition-colors">
              <Trash2 size={16} /> Esborrar
            </button>
          </div>
@@ -557,7 +585,7 @@ const SubjectsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = (
                     <div className="flex-1 px-4 font-medium text-slate-800">{s.name}</div>
                     <div className="w-20 px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                        <button onClick={() => startEdit(s)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"><Edit2 size={18}/></button>
-                       <button onClick={() => { if(window.confirm('Segur?')) cascadeDelete([s.id]); }} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
+                       <button onClick={async () => { if(window.confirm('Segur?')) await cascadeDelete([s.id]); }} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
                     </div>
                   </>
                 )}
@@ -570,7 +598,7 @@ const SubjectsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = (
   );
 };
 
-const BlockContentEditor: React.FC<{ block: Block; data: AppData; onSave: (d: AppData) => void }> = ({ block, data, onSave }) => {
+const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: DataActions }> = ({ block, data, dataActions }) => {
     const [mode, setMode] = useState<'gradients' | 'comments'>('gradients');
     const [gTag, setGTag] = useState('');
     const [gText, setGText] = useState('');
@@ -583,15 +611,15 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; onSave: (d: Ap
     const blockGradients = data.gradients.filter(g => g.blockId === block.id);
     const blockComments = data.comments.filter(c => c.blockId === block.id);
 
-    const addGradient = () => {
+    const addGradient = async () => {
         if(!gTag || !gText) return;
-        onSave({ ...data, gradients: [...data.gradients, { id: generateUniqueId(), blockId: block.id, tag: gTag, text: gText }] });
+        await dataActions.gradients.create({ block_id: block.id, tag: gTag, text: gText });
         setGTag(''); setGText('');
     };
 
-    const addComment = () => {
+    const addComment = async () => {
         if(!cTag || !cText) return;
-        onSave({ ...data, comments: [...data.comments, { id: generateUniqueId(), blockId: block.id, tag: cTag, text: cText }] });
+        await dataActions.comments.create({ block_id: block.id, tag: cTag, text: cText });
         setCTag(''); setCText('');
     };
 
@@ -600,18 +628,18 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; onSave: (d: Ap
       setEditForm({ tag: item.tag, text: item.text });
     };
 
-    const saveEdit = (type: 'gradient' | 'comment') => {
+    const saveEdit = async (type: 'gradient' | 'comment') => {
       if (!editingId) return;
       if (type === 'gradient') {
-        onSave({
-          ...data,
-          gradients: data.gradients.map(g => g.id === editingId ? { ...g, ...editForm } : g)
-        });
+        const gradientToUpdate = data.gradients.find(g => g.id === editingId);
+        if (gradientToUpdate) {
+          await dataActions.gradients.update({ ...gradientToUpdate, tag: editForm.tag, text: editForm.text });
+        }
       } else {
-        onSave({
-          ...data,
-          comments: data.comments.map(c => c.id === editingId ? { ...c, ...editForm } : c)
-        });
+        const commentToUpdate = data.comments.find(c => c.id === editingId);
+        if (commentToUpdate) {
+          await dataActions.comments.update({ ...commentToUpdate, tag: editForm.tag, text: editForm.text });
+        }
       }
       setEditingId(null);
     };
@@ -648,7 +676,7 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; onSave: (d: Ap
                                     <span className="flex-1 text-slate-600">{g.text}</span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button onClick={() => startEdit(g)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={16}/></button>
-                                      <button onClick={() => onSave({...data, gradients: data.gradients.filter(x => x.id !== g.id)})} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
+                                      <button onClick={async () => await dataActions.gradients.delete([g.id])} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
                                     </div>
                                   </>
                                 )}
@@ -682,7 +710,7 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; onSave: (d: Ap
                                     <span className="flex-1 text-slate-600">{c.text}</span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button onClick={() => startEdit(c)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={16}/></button>
-                                      <button onClick={() => onSave({...data, comments: data.comments.filter(x => x.id !== c.id)})} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
+                                      <button onClick={async () => await dataActions.comments.delete([c.id])} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
                                     </div>
                                   </>
                                 )}
@@ -696,7 +724,7 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; onSave: (d: Ap
     );
 };
 
-const BlocksTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ data, onSave }) => {
+const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data, dataActions }) => {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(data.subjects[0]?.id || '');
   const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
   
@@ -716,77 +744,65 @@ const BlocksTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ 
 
   const activeBlocks = useMemo(() => data.blocks.filter(b => b.subjectId === selectedSubjectId), [data.blocks, selectedSubjectId]);
 
-  const addBlock = () => {
+  const addBlock = async () => {
     if (!newBlockName || !selectedSubjectId) return;
-    const newBlock: Block = {
-      id: generateUniqueId(),
-      subjectId: selectedSubjectId,
+    await dataActions.blocks.create({
+      subject_id: selectedSubjectId,
       name: newBlockName,
       trimesters: newBlockTrims
-    };
-    onSave({ ...data, blocks: [...data.blocks, newBlock] });
+    });
     setNewBlockName('');
   };
 
-  const handleImportBlocks = (content: string) => {
+  const handleImportBlocks = async (content: string) => {
     if (!selectedSubjectId) return alert("Selecciona primer una àrea.");
     const rows = parseCSV(content);
-    const newBlocks: Block[] = [];
+    const blocksToCreate: Omit<Block, 'id'>[] = [];
     rows.forEach(r => {
       if (r[0]) {
-        // Parse trimesters from second column (e.g. "1 2" or "1,2,3")
         const tRaw = r[1] ? r[1].match(/[123]/g) : ['1','2','3'];
-        newBlocks.push({
-          id: generateUniqueId(),
-          subjectId: selectedSubjectId,
+        blocksToCreate.push({
+          subject_id: selectedSubjectId,
           name: r[0],
           trimesters: tRaw ? tRaw as Trimester[] : ['1','2','3']
         });
       }
-    }
-    );
-    if (newBlocks.length) {
-      onSave({ ...data, blocks: [...data.blocks, ...newBlocks] });
-      alert(`${newBlocks.length} blocs importats.`);
+    });
+    if (blocksToCreate.length) {
+      for (const block of blocksToCreate) {
+        await dataActions.blocks.create(block);
+      }
+      alert(`${blocksToCreate.length} blocs importats.`);
     }
   };
 
-  const handleImportContent = (content: string) => {
-    // Format: BlockName ; Type(G/C) ; Tag ; Text
+  const handleImportContent = async (content: string) => {
     if (!selectedSubjectId) return alert("Selecciona primer una àrea.");
     const rows = parseCSV(content);
     let gCount = 0, cCount = 0;
-    const newGradients: Gradient[] = [];
-    const newComments: Comment[] = [];
     
-    // Create a map for quick block lookup in CURRENT subject
     const blockMap = new Map(activeBlocks.map(b => [b.name.toLowerCase().trim(), b.id]));
 
-    rows.forEach(r => {
-      if (r.length < 4) return;
+    for (const r of rows) {
+      if (r.length < 4) continue;
       const bName = r[0].toLowerCase().trim();
-      const type = r[1].toUpperCase().trim(); // G or C
+      const type = r[1].toUpperCase().trim();
       const tag = r[2].trim();
       const text = r[3].trim();
       
       const bId = blockMap.get(bName);
       if (bId) {
         if (type.startsWith('G')) {
-          newGradients.push({ id: generateUniqueId(), blockId: bId, tag, text });
+          await dataActions.gradients.create({ block_id: bId, tag, text });
           gCount++;
         } else if (type.startsWith('C')) {
-          newComments.push({ id: generateUniqueId(), blockId: bId, tag, text });
+          await dataActions.comments.create({ block_id: bId, tag, text });
           cCount++;
         }
       }
-    });
+    }
 
     if (gCount + cCount > 0) {
-      onSave({
-        ...data,
-        gradients: [...data.gradients, ...newGradients],
-        comments: [...data.comments, ...newComments]
-      });
       alert(`Importats: ${gCount} Gradients i ${cCount} Comentaris.`);
     } else {
       alert("No s'han trobat coincidències de noms de blocs. Revisa que els noms siguin exactes.");
@@ -799,36 +815,40 @@ const BlocksTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ 
     setSelectedIds(newSet);
   };
 
-  const deleteSelected = () => {
+  const deleteSelected = async () => {
     if (!window.confirm(`Esborrar ${selectedIds.size} blocs?`)) return;
-    const ids = Array.from(selectedIds);
-    onSave({
-      ...data,
-      blocks: data.blocks.filter(b => !selectedIds.has(b.id)),
-      gradients: data.gradients.filter(g => !ids.includes(g.blockId)),
-      comments: data.comments.filter(c => !ids.includes(c.blockId))
-    });
+    await dataActions.blocks.delete(Array.from(selectedIds));
     setSelectedIds(new Set());
   };
 
-  const bulkSetTrims = (trims: Trimester[]) => {
+  const bulkSetTrims = async (trims: Trimester[]) => {
     if (!window.confirm(`Aplicar trimestres [${trims.join(',')}] a ${selectedIds.size} blocs?`)) return;
-    onSave({
-      ...data,
-      blocks: data.blocks.map(b => selectedIds.has(b.id) ? { ...b, trimesters: trims } : b)
-    });
+    for (const id of Array.from(selectedIds)) {
+      const blockToUpdate = data.blocks.find(b => b.id === id);
+      if (blockToUpdate) {
+        await dataActions.blocks.update({ ...blockToUpdate, trimesters: trims });
+      }
+    }
     setSelectedIds(new Set());
   };
 
   const startEdit = (b: Block) => { setEditingId(b.id); setEditForm({ name: b.name, trims: b.trimesters }); };
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingId && editForm.name) {
-      onSave({ ...data, blocks: data.blocks.map(b => b.id === editingId ? { ...b, name: editForm.name, trimesters: editForm.trims } : b) });
+      const blockToUpdate = data.blocks.find(b => b.id === editingId);
+      if (blockToUpdate) {
+        await dataActions.blocks.update({ ...blockToUpdate, name: editForm.name, trimesters: editForm.trims });
+      }
       setEditingId(null);
     }
   };
 
-  if (!selectedSubjectId) return <div className="p-8 text-center text-slate-400">Primer crea una àrea a la pestanya Àrees.</div>;
+  if (!selectedSubjectId && data.subjects.length > 0) {
+    return <div className="p-8 text-center text-slate-400">Selecciona una àrea per gestionar els blocs.</div>;
+  }
+  if (data.subjects.length === 0) {
+    return <div className="p-8 text-center text-slate-400">Primer crea una àrea a la pestanya Àrees.</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -938,14 +958,14 @@ const BlocksTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ 
                         </div>
                         <div className="w-20 px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                            <button onClick={() => startEdit(b)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"><Edit2 size={18}/></button>
-                           <button onClick={() => {if(window.confirm('Esborrar?')) onSave({...data, blocks: data.blocks.filter(x=>x.id!==b.id)})}} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
+                           <button onClick={async () => {if(window.confirm('Esborrar?')) await dataActions.blocks.delete([b.id])}} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
                         </div>
                       </>
                     )}
                  </div>
                  {/* Expanded Content */}
                  {expandedBlockId === b.id && (
-                    <BlockContentEditor block={b} data={data} onSave={onSave} />
+                    <BlockContentEditor block={b} data={data} dataActions={dataActions} />
                  )}
               </div>
             ))}
@@ -956,7 +976,7 @@ const BlocksTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ 
   );
 };
 
-export const Settings: React.FC<SettingsProps> = ({ data, user, onSave, onUpdateUser, onLogout }) => {
+export const Settings: React.FC<SettingsProps> = ({ data, user, onSave, onUpdateUser, onLogout, dataActions }) => {
   const [activeTab, setActiveTab] = useState<Tab>('profile');
 
   return (
@@ -989,9 +1009,9 @@ export const Settings: React.FC<SettingsProps> = ({ data, user, onSave, onUpdate
          </h2>
          
          {activeTab === 'profile' && <ProfileTab user={user} onUpdateUser={onUpdateUser} data={data} onSaveData={onSave} onLogout={onLogout} />}
-         {activeTab === 'students' && <StudentsTab data={data} onSave={onSave} defaultCourse={user.currentCourse} />}
-         {activeTab === 'subjects' && <SubjectsTab data={data} onSave={onSave} />}
-         {activeTab === 'blocks' && <BlocksTab data={data} onSave={onSave} />}
+         {activeTab === 'students' && <StudentsTab data={data} defaultCourse={user.currentCourse} dataActions={dataActions} />}
+         {activeTab === 'subjects' && <SubjectsTab data={data} dataActions={dataActions} />}
+         {activeTab === 'blocks' && <BlocksTab data={data} dataActions={dataActions} />}
       </div>
     </div>
   );
