@@ -363,6 +363,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
       course: newStudent.course as Course
     });
     setNewStudent({ name: '', gender: 'nen', course: defaultCourse });
+    toast.success("Alumne afegit.");
   };
 
   const handleImport = async (content: string) => {
@@ -533,9 +534,11 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
   };
 
   const cascadeDelete = async (ids: string[]) => {
-    await dataActions.subjects.delete(ids);
-    setSelectedIds(new Set());
-    toast.success(`${ids.length} àrees esborrades.`); // Usa toast.success
+    if(window.confirm('Segur? S\'esborraran també els blocs.')) {
+      await dataActions.subjects.delete(ids);
+      setSelectedIds(new Set());
+      toast.success(`${ids.length} àrees esborrades.`); // Usa toast.success
+    }
   };
 
   const handleImport = async (content: string) => {
@@ -577,7 +580,7 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
       {selectedIds.size > 0 && (
          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between animate-fade-in shadow-sm">
            <span className="font-medium text-blue-800 ml-2">{selectedIds.size} seleccionats</span>
-           <button onClick={async () => { if(window.confirm('Segur? S\'esborraran també els blocs.')) await cascadeDelete(Array.from(selectedIds)); }} className="flex items-center gap-1 text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition-colors">
+           <button onClick={async () => { await cascadeDelete(Array.from(selectedIds)); }} className="flex items-center gap-1 text-sm bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition-colors">
              <Trash2 size={16} /> Esborrar
            </button>
          </div>
@@ -880,10 +883,10 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
   };
 
   if (!selectedSubjectId && data.subjects.length > 0) {
-    return <div className="p-8 text-center text-slate-400">Selecciona una àrea per gestionar els blocs.</div>;
+    return <div className="p-8 text-center text-slate-400 italic">Selecciona una àrea per gestionar els blocs.</div>;
   }
   if (data.subjects.length === 0) {
-    return <div className="p-8 text-center text-slate-400">Primer crea una àrea a la pestanya Àrees.</div>;
+    return <div className="p-8 text-center text-slate-400 italic">Primer crea una àrea a la pestanya Àrees.</div>;
   }
 
   return (
