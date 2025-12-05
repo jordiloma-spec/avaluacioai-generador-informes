@@ -23,8 +23,8 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
   const [geminiReport, setGeminiReport] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [showResult, setShowResult] = useState(false);
-  const [limitError, setLimitError] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false); // Renamed from showResult
+  const [showLimitModal, setShowLimitModal] = useState(false);   // Renamed from limitError
 
   // Computed
   const selectedStudent = data.students.find(s => s.id === selectedStudentId);
@@ -32,7 +32,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
   // Filter blocks based on subject AND trimester
   const activeBlocks = data.blocks.filter(b => 
-    b.subject_id === selectedSubjectId && // Already correct
+    b.subject_id === selectedSubjectId && 
     (trimester === '' || b.trimesters.includes(trimester as Trimester))
   );
 
@@ -52,13 +52,13 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
     // Check Limits
     if (!checkDailyLimit(user)) {
-      setLimitError(true);
+      setShowLimitModal(true); // Use new state
       return;
     }
-    setLimitError(false);
+    setShowLimitModal(false); // Ensure it's false if limit is not hit
 
     setLoading(true);
-    setShowResult(true);
+    setShowReportModal(true); // Use new state to show the report modal
     setGeminiReport(''); 
 
     const prompt = generatePrompt(
@@ -69,7 +69,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
       data.gradients,
       data.comments,
       evaluations,
-      user.gender // Pass user's gender
+      user.gender 
     );
 
     setGeneratedPrompt(prompt);
@@ -92,8 +92,8 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
   const resetSubject = () => {
     setSelectedSubjectId('');
     setEvaluations({});
-    setShowResult(false);
-    setLimitError(false);
+    setShowReportModal(false); // Reset report modal visibility
+    setShowLimitModal(false); // Reset limit modal visibility
   };
 
   const resetStudent = () => {
@@ -216,7 +216,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
       <InfoHeader />
 
       {/* Limit Alert Modal */}
-      {limitError && (
+      {showLimitModal && ( // Use new state
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center space-y-4 animate-fade-in">
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -228,17 +228,54 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
             </p>
             <div className="flex flex-col gap-2">
               <button 
-                onClick={() => setLimitError(false)}
+                onClick={() => setShowLimitModal(false)} // Use new state
                 className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
               >
                 Entesos (Anar a Perfil)
               </button>
               <button 
-                onClick={() => setLimitError(false)}
+                onClick={() => setShowLimitModal(false)} // Use new state
                 className="w-full py-2 text-slate-500 hover:text-slate-800"
               >
                 Tancar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Display Modal */}
+      {showReportModal && ( // Use new state
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full h-[90vh] flex flex-col animate-fade-in">
+            <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <FileText className="text-blue-500" size={24} /> Informe Generat
+            </h3>
+            {loading ? (
+                <div className="flex-1 flex items-center justify-center text-slate-500">
+                    <Loader2 className="animate-spin mr-2" size={24} /> Generant informe...
+                </div>
+            ) : (
+                <div className="flex-1 overflow-y-auto space-y-4 text-sm text-slate-700 border p-4 rounded-lg bg-slate-50">
+                    {geminiReport ? (
+                        <div className="whitespace-pre-wrap">{geminiReport}</div>
+                    ) : (
+                        <p className="text-red-500">No s'ha pogut generar l'informe.</p>
+                    )}
+                    {/* Optionally show prompt for debugging/transparency */}
+                    {/* <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-400">
+                        <h4 className="font-bold mb-1">Prompt enviat a Gemini:</h4>
+                        <pre className="whitespace-pre-wrap bg-slate-100 p-2 rounded">{generatedPrompt}</pre>
+                    </div> */}
+                </div>
+            )}
+            <div className="mt-6 flex justify-end">
+                <button 
+                    onClick={() => setShowReportModal(false)} // Use new state
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                >
+                    Tancar
+                </button>
             </div>
           </div>
         </div>
@@ -252,8 +289,8 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
           </div>
         ) : (
           activeBlocks.map((block) => {
-            const blockGradients = data.gradients.filter(g => g.block_id === block.id); // Changed to block_id
-            const blockComments = data.comments.filter(c => c.block_id === block.id); // Changed to block_id
+            const blockGradients = data.gradients.filter(g => g.block_id === block.id); 
+            const blockComments = data.comments.filter(c => c.block_id === block.id); 
             const currentEval = evaluations[block.id] || { gradientId: null, commentIds: [] };
 
             return (
