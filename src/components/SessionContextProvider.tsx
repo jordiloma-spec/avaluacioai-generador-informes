@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext, ReactNode } from
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
 import { UserProfile, Course } from '../types';
-import { getLocalUserUsageData, saveLocalUserUsageData } from '../services/storageService';
+// REMOVED: import { getLocalUserUsageData, saveLocalUserUsageData } from '../services/storageService';
 
 interface SessionContextType {
   session: Session | null;
@@ -37,7 +37,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, avatar_url, current_course, gender')
+        .select('first_name, last_name, avatar_url, current_course, gender, is_premium, daily_usage_date, daily_usage_count') // Added new columns
         .eq('id', supabaseUser.id)
         .single();
       
@@ -54,18 +54,18 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
     console.log('fetchUserProfile: Profile data from Supabase (after fetch attempt):', profileData);
 
-    // Load local usage data (for premium status and daily usage)
-    const localUsage = getLocalUserUsageData(supabaseUser.id);
-    console.log('fetchUserProfile: Local usage data:', localUsage);
-
+    // Map Supabase data to UserProfile interface
     const userProfile: UserProfile = {
       id: supabaseUser.id,
       email: supabaseUser.email || '',
       name: profileData?.first_name || supabaseUser.email?.split('@')[0] || 'Usuari',
       currentCourse: (profileData?.current_course as Course) || '1r',
       gender: profileData?.gender === 'mestre' ? 'mestre' : 'mestra', // Default to 'mestra'
-      isPremium: localUsage?.isPremium || false,
-      dailyUsage: localUsage?.dailyUsage || { date: new Date().toISOString().split('T')[0], count: 0 },
+      isPremium: profileData?.is_premium || false, // Now from Supabase
+      dailyUsage: {
+        date: profileData?.daily_usage_date || new Date().toISOString().split('T')[0], // Now from Supabase
+        count: profileData?.daily_usage_count || 0, // Now from Supabase
+      },
     };
     setProfile(userProfile);
     console.log('fetchUserProfile: Profile set:', userProfile);
@@ -85,6 +85,11 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     if (updatedProfile.name !== undefined) updateObject.first_name = updatedProfile.name;
     if (updatedProfile.currentCourse !== undefined) updateObject.current_course = updatedProfile.currentCourse;
     if (updatedProfile.gender !== undefined) updateObject.gender = updatedProfile.gender;
+    if (updatedProfile.isPremium !== undefined) updateObject.is_premium = updatedProfile.isPremium; // Now updates Supabase
+    if (updatedProfile.dailyUsage !== undefined) { // Now updates Supabase
+      updateObject.daily_usage_date = updatedProfile.dailyUsage.date;
+      updateObject.daily_usage_count = updatedProfile.dailyUsage.count;
+    }
 
     const { error: updateError } = await supabase
       .from('profiles')
@@ -97,14 +102,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
     console.log('updateUserProfile: Profile updated in Supabase.');
 
-    // Update local usage data
-    const newLocalUsage = {
-      isPremium: updatedProfile.isPremium !== undefined ? updatedProfile.isPremium : profile.isPremium,
-      dailyUsage: updatedProfile.dailyUsage || profile.dailyUsage,
-    };
-    saveLocalUserUsageData(user.id, newLocalUsage);
-    console.log('updateUserProfile: Local usage data updated:', newLocalUsage);
-
+    // Update local state
     setProfile(prev => ({ ...prev!, ...updatedProfile }));
     console.log('updateUserProfile: Profile state updated locally.');
   };

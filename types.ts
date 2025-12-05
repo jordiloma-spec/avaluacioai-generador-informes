@@ -5,13 +5,13 @@ export type Course = '1r' | '2n' | '3r' | '4t' | '5è' | '6è';
 export interface UserProfile {
   id: string; // Supabase user ID
   email: string;
-  name: string; // From profiles table
+  name: string; // From profiles table (first_name)
   currentCourse: Course; // From profiles table
-  gender: 'mestre' | 'mestra'; // New: From profiles table
-  isPremium: boolean; // Still managed locally for demo, or could be a column in profiles
+  gender: 'mestre' | 'mestra'; // From profiles table
+  isPremium: boolean; // Now from profiles table (is_premium)
   dailyUsage: {
-    date: string; // YYYY-MM-DD
-    count: number;
+    date: string; // YYYY-MM-DD, now from profiles table (daily_usage_date)
+    count: number; // Now from profiles table (daily_usage_count)
   };
 }
 
@@ -29,23 +29,23 @@ export interface Subject {
 
 export interface Block {
   id: string;
-  subject_id: string; // Changed from subjectId to subject_id
+  subject_id: string;
   name: string;
-  trimesters: Trimester[]; // Which trimesters this block is active
+  trimesters: Trimester[];
 }
 
 export interface Gradient {
   id: string;
-  block_id: string; // Changed from blockId to block_id
-  tag: string; // e.g., "A", "B", "Excel·lent"
-  text: string; // The long description
+  block_id: string;
+  tag: string;
+  text: string;
 }
 
 export interface Comment {
   id: string;
-  block_id: string; // Changed from blockId to block_id
-  tag: string; // Short tag
-  text: string; // Long text
+  block_id: string;
+  tag: string;
+  text: string;
 }
 
 export interface EvaluationState {

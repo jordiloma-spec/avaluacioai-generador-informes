@@ -7,7 +7,7 @@ import { Loader2, RefreshCw, FileText, ChevronLeft, User, BookOpen, Clock, Crown
 interface EvaluatorProps {
   data: AppData;
   user: UserProfile;
-  onUpdateUser: (u: UserProfile) => void;
+  onUpdateUser: (u: Partial<UserProfile>) => void; // Changed to Partial<UserProfile>
 }
 
 export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }) => {
@@ -78,9 +78,9 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
       const report = await fetchReportFromGemini(prompt);
       setGeminiReport(report);
       
-      // Increment Usage on success
+      // Increment Usage on success and persist to Supabase via onUpdateUser
       const updatedUser = incrementDailyUsage(user);
-      onUpdateUser(updatedUser);
+      await onUpdateUser(updatedUser); // Persist the updated dailyUsage to Supabase
 
     } catch (e) {
       setGeminiReport('Error connectant amb Gemini.');

@@ -338,7 +338,7 @@ const ProfileTab: React.FC<{
 
 const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions: DataActions }> = ({ data, defaultCourse, dataActions }) => {
   const [newStudent, setNewStudent] = useState<Partial<Student>>({ name: '', gender: 'nen', course: defaultCourse });
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = new Set<string>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Student>>({});
 
@@ -503,7 +503,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
 
 const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data, dataActions }) => {
   const [newSubName, setNewSubName] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = new Set<string>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -731,7 +731,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
   const [newBlockName, setNewBlockName] = useState('');
   const [newBlockTrims, setNewBlockTrims] = useState<Trimester[]>(['1', '2', '3']);
   
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = new Set<string>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', trims: [] as Trimester[] });
 

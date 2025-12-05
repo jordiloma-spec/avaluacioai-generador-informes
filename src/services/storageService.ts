@@ -2,12 +2,11 @@ import { AppData, UserProfile, Course } from '../types';
 
 // The DATA_PREFIX and AppData management will be moved to Supabase via dataService.ts
 // This file will now only handle user-specific local storage for premium/daily usage.
-
-const USER_PREMIUM_DAILY_USAGE_PREFIX = 'user_premium_daily_usage_';
+// REMOVED: USER_PREMIUM_DAILY_USAGE_PREFIX and related local storage functions.
 
 export const generateUniqueId = () => Math.random().toString(36).substr(2, 9); // Still useful for client-side temporary IDs if needed
 
-// --- USAGE LOGIC (still local for now) ---
+// --- USAGE LOGIC (now interacts with UserProfile directly, which is sourced from Supabase) ---
 
 export const checkDailyLimit = (user: UserProfile): boolean => {
   if (user.isPremium) return true;
@@ -35,21 +34,9 @@ export const incrementDailyUsage = (user: UserProfile): UserProfile => {
   }
 
   const updatedUser = { ...user, dailyUsage: newUsage };
-  // Note: In a real app, this would update the user profile in Supabase
-  // For this demo, we'll assume the `onUpdateUser` callback in App.tsx handles persistence.
-  // The actual persistence of dailyUsage is now handled in SessionContextProvider's updateUserProfile.
+  // The actual persistence of dailyUsage is now handled in SessionContextProvider's updateUserProfile,
+  // which will write to Supabase. This function now just returns the updated UserProfile object.
   return updatedUser;
 };
 
-// --- Local Storage for User Profile (Premium/Daily Usage) ---
-// These functions are now primarily used by SessionContextProvider
-export const getLocalUserUsageData = (userId: string) => {
-  const key = `${USER_PREMIUM_DAILY_USAGE_PREFIX}${userId}`;
-  const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : null;
-};
-
-export const saveLocalUserUsageData = (userId: string, data: { isPremium: boolean; dailyUsage: { date: string; count: number } }) => {
-  const key = `${USER_PREMIUM_DAILY_USAGE_PREFIX}${userId}`;
-  localStorage.setItem(key, JSON.stringify(data));
-};
+// REMOVED: getLocalUserUsageData and saveLocalUserUsageData
