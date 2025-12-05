@@ -442,7 +442,7 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
 
 const SubjectsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ data, onSave }) => {
   const [newSubName, setNewSubName] = useState('');
-  const [selectedIds, setSelectedIds] = new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()); // Fixed: Added useState
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
