@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppData, UserProfile, Student, Subject, Block, Gradient, Comment, Course, Gender, Trimester } from './types';
 import { Evaluator } from './components/Evaluator';
 import { Settings } from './components/Settings';
@@ -20,6 +20,8 @@ function AppContent() {
   const [appDataLoading, setAppDataLoading] = useState(true); // New state for app data loading
   const [currentView, setCurrentView] = useState<'evaluator' | 'settings'>('evaluator');
 
+  const lastLoadedUserId = useRef<string | null>(null); // Ref to track the last user ID for which data was loaded
+
   // Function to fetch all user data from Supabase
   const loadAppData = useCallback(async (userId: string) => {
     setAppDataLoading(true); // Set app data loading true
@@ -30,10 +32,16 @@ function AppContent() {
 
   useEffect(() => {
     if (profile && user) {
-      loadAppData(profile.id);
+      // Only load app data if the user ID changes or if it's the initial load for this user.
+      // This prevents unnecessary re-fetches and unmounting of Evaluator when only profile.dailyUsage changes.
+      if (user.id !== lastLoadedUserId.current) {
+        loadAppData(profile.id);
+        lastLoadedUserId.current = user.id;
+      }
     } else {
       setData(null); // Clear data if no profile
       setAppDataLoading(false); // Ensure app data loading is false if no user
+      lastLoadedUserId.current = null; // Reset on logout
     }
   }, [profile, user, loadAppData]);
 
@@ -84,10 +92,10 @@ function AppContent() {
       delete: async (ids: string[]) => {
         await deleteSubjects(ids);
         // Also delete related blocks, gradients, comments
-        const blocksToDelete = data!.blocks.filter(b => ids.includes(b.subject_id)).map(b => b.id); // Changed to b.subject_id
+        const blocksToDelete = data!.blocks.filter(b => ids.includes(b.subject_id)).map(b => b.id);
         await deleteBlocks(blocksToDelete);
-        await deleteGradients(data!.gradients.filter(g => blocksToDelete.includes(g.block_id)).map(g => g.id)); // Changed to g.block_id
-        await deleteComments(data!.comments.filter(c => blocksToDelete.includes(c.block_id)).map(c => c.id)); // Changed to c.block_id
+        await deleteGradients(data!.gradients.filter(g => blocksToDelete.includes(g.block_id)).map(g => g.id));
+        await deleteComments(data!.comments.filter(c => blocksToDelete.includes(c.block_id)).map(c => c.id));
         setData(prev => ({
           ...prev!,
           subjects: prev!.subjects.filter(s => !ids.includes(s.id)),
@@ -112,8 +120,8 @@ function AppContent() {
       delete: async (ids: string[]) => {
         await deleteBlocks(ids);
         // Also delete related gradients and comments
-        await deleteGradients(data!.gradients.filter(g => ids.includes(g.block_id)).map(g => g.id)); // Changed to g.block_id
-        await deleteComments(data!.comments.filter(c => ids.includes(c.block_id)).map(c => c.id)); // Changed to c.block_id
+        await deleteGradients(data!.gradients.filter(g => ids.includes(g.block_id)).map(g => g.id));
+        await deleteComments(data!.comments.filter(c => ids.includes(c.block_id)).map(c => c.id));
         setData(prev => ({
           ...prev!,
           blocks: prev!.blocks.filter(b => !ids.includes(b.id)),
@@ -158,11 +166,12 @@ function AppContent() {
     },
   };
 
-
-  if (sessionLoading || appDataLoading || !data) { // Check for both session loading and app data loading
+  // Adjusted loading condition
+  if (sessionLoading || appDataLoading) { // Only show loading if session or app data is actively loading
     return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades de l'aplicació...</div>;
   }
 
+  // After loading, if no session/profile, show login
   if (!session || !profile) {
     return <Login />;
   }
