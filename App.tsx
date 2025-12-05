@@ -84,16 +84,16 @@ function AppContent() {
       delete: async (ids: string[]) => {
         await deleteSubjects(ids);
         // Also delete related blocks, gradients, comments
-        const blocksToDelete = data!.blocks.filter(b => ids.includes(b.subjectId)).map(b => b.id);
+        const blocksToDelete = data!.blocks.filter(b => ids.includes(b.subject_id)).map(b => b.id); // Changed to b.subject_id
         await deleteBlocks(blocksToDelete);
-        await deleteGradients(data!.gradients.filter(g => blocksToDelete.includes(g.blockId)).map(g => g.id));
-        await deleteComments(data!.comments.filter(c => blocksToDelete.includes(c.blockId)).map(c => c.id));
+        await deleteGradients(data!.gradients.filter(g => blocksToDelete.includes(g.block_id)).map(g => g.id)); // Changed to g.block_id
+        await deleteComments(data!.comments.filter(c => blocksToDelete.includes(c.block_id)).map(c => c.id)); // Changed to c.block_id
         setData(prev => ({
           ...prev!,
           subjects: prev!.subjects.filter(s => !ids.includes(s.id)),
           blocks: prev!.blocks.filter(b => !blocksToDelete.includes(b.id)),
-          gradients: prev!.gradients.filter(g => !blocksToDelete.includes(g.blockId)),
-          comments: prev!.comments.filter(c => !blocksToDelete.includes(c.blockId)),
+          gradients: prev!.gradients.filter(g => !blocksToDelete.includes(g.block_id)),
+          comments: prev!.comments.filter(c => !blocksToDelete.includes(c.block_id)),
         }));
       },
     },
@@ -112,13 +112,13 @@ function AppContent() {
       delete: async (ids: string[]) => {
         await deleteBlocks(ids);
         // Also delete related gradients and comments
-        await deleteGradients(data!.gradients.filter(g => ids.includes(g.blockId)).map(g => g.id));
-        await deleteComments(data!.comments.filter(c => ids.includes(c.blockId)).map(c => c.id));
+        await deleteGradients(data!.gradients.filter(g => ids.includes(g.block_id)).map(g => g.id)); // Changed to g.block_id
+        await deleteComments(data!.comments.filter(c => ids.includes(c.block_id)).map(c => c.id)); // Changed to c.block_id
         setData(prev => ({
           ...prev!,
           blocks: prev!.blocks.filter(b => !ids.includes(b.id)),
-          gradients: prev!.gradients.filter(g => !ids.includes(g.blockId)),
-          comments: prev!.comments.filter(c => !ids.includes(c.blockId)),
+          gradients: prev!.gradients.filter(g => !ids.includes(g.block_id)),
+          comments: prev!.comments.filter(c => !ids.includes(c.block_id)),
         }));
       },
     },

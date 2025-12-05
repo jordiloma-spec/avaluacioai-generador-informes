@@ -608,18 +608,18 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ tag: '', text: '' });
 
-    const blockGradients = data.gradients.filter(g => g.blockId === block.id);
-    const blockComments = data.comments.filter(c => c.blockId === block.id);
+    const blockGradients = data.gradients.filter(g => g.block_id === block.id); // Changed to block_id
+    const blockComments = data.comments.filter(c => c.block_id === block.id); // Changed to block_id
 
     const addGradient = async () => {
         if(!gTag || !gText) return;
-        await dataActions.gradients.create({ block_id: block.id, tag: gTag, text: gText });
+        await dataActions.gradients.create({ block_id: block.id, tag: gTag, text: gText }); // Changed to block_id
         setGTag(''); setGText('');
     };
 
     const addComment = async () => {
         if(!cTag || !cText) return;
-        await dataActions.comments.create({ block_id: block.id, tag: cTag, text: cText });
+        await dataActions.comments.create({ block_id: block.id, tag: cTag, text: cText }); // Changed to block_id
         setCTag(''); setCText('');
     };
 
@@ -633,12 +633,12 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
       if (type === 'gradient') {
         const gradientToUpdate = data.gradients.find(g => g.id === editingId);
         if (gradientToUpdate) {
-          await dataActions.gradients.update({ ...gradientToUpdate, tag: editForm.tag, text: editForm.text });
+          await dataActions.gradients.update({ ...gradientToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text }); // Ensure block_id is passed
         }
       } else {
         const commentToUpdate = data.comments.find(c => c.id === editingId);
         if (commentToUpdate) {
-          await dataActions.comments.update({ ...commentToUpdate, tag: editForm.tag, text: editForm.text });
+          await dataActions.comments.update({ ...commentToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text }); // Ensure block_id is passed
         }
       }
       setEditingId(null);
@@ -693,6 +693,7 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
                         <button onClick={addComment} className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><Plus size={18}/></button>
                     </div>
                     <ul className="space-y-2">
+                        {blockComments.length === 0 && <li className="text-xs text-slate-400 italic">No hi ha comentaris.</li>}
                         {blockComments.map(c => (
                             <li key={c.id} className="flex items-center gap-3 text-sm bg-white p-2 rounded border border-slate-200 shadow-sm group">
                                 {editingId === c.id ? (
@@ -716,7 +717,6 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
                                 )}
                             </li>
                         ))}
-                         {blockComments.length === 0 && <li className="text-xs text-slate-400 italic">No hi ha comentaris.</li>}
                     </ul>
                 </div>
             )}
@@ -742,12 +742,12 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
     }
   }, [data.subjects, selectedSubjectId]);
 
-  const activeBlocks = useMemo(() => data.blocks.filter(b => b.subjectId === selectedSubjectId), [data.blocks, selectedSubjectId]);
+  const activeBlocks = useMemo(() => data.blocks.filter(b => b.subject_id === selectedSubjectId), [data.blocks, selectedSubjectId]); // Changed to b.subject_id
 
   const addBlock = async () => {
     if (!newBlockName || !selectedSubjectId) return;
     await dataActions.blocks.create({
-      subject_id: selectedSubjectId,
+      subject_id: selectedSubjectId, // Changed to subject_id
       name: newBlockName,
       trimesters: newBlockTrims
     });
@@ -762,7 +762,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       if (r[0]) {
         const tRaw = r[1] ? r[1].match(/[123]/g) : ['1','2','3'];
         blocksToCreate.push({
-          subject_id: selectedSubjectId,
+          subject_id: selectedSubjectId, // Changed to subject_id
           name: r[0],
           trimesters: tRaw ? tRaw as Trimester[] : ['1','2','3']
         });
@@ -793,10 +793,10 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       const bId = blockMap.get(bName);
       if (bId) {
         if (type.startsWith('G')) {
-          await dataActions.gradients.create({ block_id: bId, tag, text });
+          await dataActions.gradients.create({ block_id: bId, tag, text }); // Changed to block_id
           gCount++;
         } else if (type.startsWith('C')) {
-          await dataActions.comments.create({ block_id: bId, tag, text });
+          await dataActions.comments.create({ block_id: bId, tag, text }); // Changed to block_id
           cCount++;
         }
       }

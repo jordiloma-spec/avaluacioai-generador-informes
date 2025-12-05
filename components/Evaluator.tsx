@@ -32,7 +32,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
   // Filter blocks based on subject AND trimester
   const activeBlocks = data.blocks.filter(b => 
-    b.subject_id === selectedSubjectId && // Changed to subject_id to match Supabase schema
+    b.subject_id === selectedSubjectId && // Already correct
     (trimester === '' || b.trimesters.includes(trimester as Trimester))
   );
 
@@ -211,91 +211,6 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
   }
 
   // 4. EVALUATION FORM & RESULT
-  if (showResult) {
-    return (
-      <div className="pb-24 animate-fade-in relative">
-        <InfoHeader />
-        
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-             <h2 className="text-2xl font-bold text-slate-800">Resultat de l'Informe</h2>
-             <button 
-               onClick={() => setShowResult(false)}
-               className="text-slate-500 hover:text-slate-800 flex items-center gap-2"
-             >
-               <ChevronLeft size={20} /> Tornar a editar
-             </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Prompt Column */}
-            <div className="space-y-2">
-               <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-600 flex items-center gap-2">
-                    <FileText size={18} /> Prompt Generat
-                  </h3>
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(generatedPrompt)}
-                    className="text-xs font-medium text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"
-                  >
-                    Copiar
-                  </button>
-               </div>
-               <textarea 
-                 readOnly
-                 value={generatedPrompt}
-                 className="w-full h-96 p-4 text-sm font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg resize-none focus:outline-none"
-               />
-            </div>
-
-            {/* Gemini Result Column */}
-            <div className="space-y-2">
-               <h3 className="font-semibold text-emerald-600 flex items-center gap-2">
-                 <span className="text-lg">✨</span> Informe Gemini
-               </h3>
-               <div className="w-full min-h-96 p-6 bg-white border border-emerald-100 rounded-xl shadow-sm relative">
-                  {loading ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10 rounded-xl">
-                      <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-                      <p className="text-emerald-700 font-medium">Generant l'informe...</p>
-                    </div>
-                  ) : (
-                    <div className="prose prose-sm max-w-none text-slate-800 whitespace-pre-line">
-                      {geminiReport}
-                    </div>
-                  )}
-               </div>
-               {!loading && (
-                 <div className="flex justify-end gap-3 pt-2">
-                   <button 
-                     onClick={handleGenerate} 
-                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
-                   >
-                     <RefreshCw size={16} /> Regenerar
-                   </button>
-                   <button 
-                      onClick={() => {
-                          const blob = new Blob([geminiReport], { type: 'text/plain' });
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `Informe-${selectedStudent?.name}-${selectedSubject?.name}.txt`;
-                          a.click();
-                      }}
-                     className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
-                   >
-                     Descarregar .txt
-                   </button>
-                 </div>
-               )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main Form Layout
   return (
     <div className="pb-24 animate-fade-in relative">
       <InfoHeader />

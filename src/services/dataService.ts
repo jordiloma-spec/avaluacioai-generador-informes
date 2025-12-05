@@ -82,7 +82,13 @@ export const deleteSubjects = async (ids: string[]): Promise<void> => {
 
 // --- Block CRUD ---
 export const createBlock = async (userId: string, block: Omit<Block, 'id'>): Promise<Block | null> => {
-  const { data, error } = await supabase.from('blocks').insert({ ...block, user_id: userId }).select().single();
+  // Ensure subject_id is correctly passed to Supabase
+  const { data, error } = await supabase.from('blocks').insert({ 
+    user_id: userId, 
+    subject_id: block.subject_id, // Use subject_id
+    name: block.name,
+    trimesters: block.trimesters
+  }).select().single();
   if (error) {
     console.error('Error creating block:', error);
     return null;
@@ -91,7 +97,12 @@ export const createBlock = async (userId: string, block: Omit<Block, 'id'>): Pro
 };
 
 export const updateBlock = async (block: Block): Promise<Block | null> => {
-  const { data, error } = await supabase.from('blocks').update(block).eq('id', block.id).select().single();
+  // Ensure subject_id is correctly passed to Supabase
+  const { data, error } = await supabase.from('blocks').update({
+    subject_id: block.subject_id, // Use subject_id
+    name: block.name,
+    trimesters: block.trimesters
+  }).eq('id', block.id).select().single();
   if (error) {
     console.error('Error updating block:', error);
     return null;
@@ -106,7 +117,13 @@ export const deleteBlocks = async (ids: string[]): Promise<void> => {
 
 // --- Gradient CRUD ---
 export const createGradient = async (userId: string, gradient: Omit<Gradient, 'id'>): Promise<Gradient | null> => {
-  const { data, error } = await supabase.from('gradients').insert({ ...gradient, user_id: userId }).select().single();
+  // Ensure block_id is correctly passed to Supabase
+  const { data, error } = await supabase.from('gradients').insert({ 
+    user_id: userId, 
+    block_id: gradient.block_id, // Use block_id
+    tag: gradient.tag,
+    text: gradient.text
+  }).select().single();
   if (error) {
     console.error('Error creating gradient:', error);
     return null;
@@ -115,7 +132,12 @@ export const createGradient = async (userId: string, gradient: Omit<Gradient, 'i
 };
 
 export const updateGradient = async (gradient: Gradient): Promise<Gradient | null> => {
-  const { data, error } = await supabase.from('gradients').update(gradient).eq('id', gradient.id).select().single();
+  // Ensure block_id is correctly passed to Supabase
+  const { data, error } = await supabase.from('gradients').update({
+    block_id: gradient.block_id, // Use block_id
+    tag: gradient.tag,
+    text: gradient.text
+  }).eq('id', gradient.id).select().single();
   if (error) {
     console.error('Error updating gradient:', error);
     return null;
@@ -130,7 +152,13 @@ export const deleteGradients = async (ids: string[]): Promise<void> => {
 
 // --- Comment CRUD ---
 export const createComment = async (userId: string, comment: Omit<Comment, 'id'>): Promise<Comment | null> => {
-  const { data, error } = await supabase.from('comments').insert({ ...comment, user_id: userId }).select().single();
+  // Ensure block_id is correctly passed to Supabase
+  const { data, error } = await supabase.from('comments').insert({ 
+    user_id: userId, 
+    block_id: comment.block_id, // Use block_id
+    tag: comment.tag,
+    text: comment.text
+  }).select().single();
   if (error) {
     console.error('Error creating comment:', error);
     return null;
@@ -139,7 +167,12 @@ export const createComment = async (userId: string, comment: Omit<Comment, 'id'>
 };
 
 export const updateComment = async (comment: Comment): Promise<Comment | null> => {
-  const { data, error } = await supabase.from('comments').update(comment).eq('id', comment.id).select().single();
+  // Ensure block_id is correctly passed to Supabase
+  const { data, error } = await supabase.from('comments').update({
+    block_id: comment.block_id, // Use block_id
+    tag: comment.tag,
+    text: comment.text
+  }).eq('id', comment.id).select().single();
   if (error) {
     console.error('Error updating comment:', error);
     return null;

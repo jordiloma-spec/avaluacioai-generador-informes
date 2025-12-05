@@ -29,21 +29,21 @@ export interface Subject {
 
 export interface Block {
   id: string;
-  subjectId: string;
+  subject_id: string; // Changed from subjectId to subject_id
   name: string;
   trimesters: Trimester[]; // Which trimesters this block is active
 }
 
 export interface Gradient {
   id: string;
-  blockId: string;
+  block_id: string; // Changed from blockId to block_id
   tag: string; // e.g., "A", "B", "Excel·lent"
   text: string; // The long description
 }
 
 export interface Comment {
   id: string;
-  blockId: string;
+  block_id: string; // Changed from blockId to block_id
   tag: string; // Short tag
   text: string; // Long text
 }
