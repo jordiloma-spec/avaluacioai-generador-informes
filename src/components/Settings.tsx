@@ -360,18 +360,24 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
     const rows = parseCSV(content);
     const studentsToCreate: Omit<Student, 'id'>[] = [];
     rows.forEach(row => {
-      if (row.length >= 1) {
+      if (row.length >= 3) { // Expect at least 3 columns: Name, Gender, Course
          const name = row[0];
          const genderRaw = (row[1] || '').toLowerCase();
          const gender: Gender = (genderRaw.includes('nena') || genderRaw === 'f' || genderRaw.includes('dona')) ? 'nena' : 'nen';
-         studentsToCreate.push({ name, gender, course: defaultCourse });
+         const course = (row[2] || defaultCourse) as Course; // Use defaultCourse if not provided
+         studentsToCreate.push({ name, gender, course });
+      } else if (row.length >= 1) { // Fallback for older format or partial data (Name, Gender)
+         const name = row[0];
+         const genderRaw = (row[1] || '').toLowerCase();
+         const gender: Gender = (genderRaw.includes('nena') || genderRaw === 'f' || genderRaw.includes('dona')) ? 'nena' : 'nen';
+         studentsToCreate.push({ name, gender, course: defaultCourse }); // Assign default course
       }
     });
     if (studentsToCreate.length > 0) {
       for (const student of studentsToCreate) {
         await dataActions.students.create(student);
       }
-      alert(`S'han importat ${studentsToCreate.length} alumnes al curs ${defaultCourse}.`);
+      alert(`S'han importat ${studentsToCreate.length} alumnes.`);
     }
   };
 
@@ -433,7 +439,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
             <Plus size={18} /> Afegir
           </button>
         </div>
-        <ImportSection label="Importar Alumnes (CSV)" onImport={handleImport} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Nom, Sexe<br/>Pau Garcia, nen<br/>Anna Vila, nena</div>} />
+        <ImportSection label="Importar Alumnes (CSV)" onImport={handleImport} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Nom, Sexe, Curs<br/>Pau Garcia, nen, 3r<br/>Anna Vila, nena, 2n</div>} />
       </div>
 
       {/* BULK ACTIONS */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppData, Student, Subject, Trimester, EvaluationState, Block, UserProfile } from '../types';
 import { generatePrompt, fetchReportFromGemini } from '../../services/geminiService';
 import { checkDailyLimit, incrementDailyUsage } from '../../services/storageService';
-import { Loader2, RefreshCw, FileText, ChevronLeft, User, BookOpen, Clock, Crown, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, FileText, ChevronLeft, User, BookOpen, Clock, Crown, AlertCircle, Copy } from 'lucide-react';
 
 interface EvaluatorProps {
   data: AppData;
@@ -23,8 +23,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
   const [geminiReport, setGeminiReport] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false); // Renamed from showResult
-  const [showLimitModal, setShowLimitModal] = useState(false);   // Renamed from limitError
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   // Computed
   const selectedStudent = data.students.find(s => s.id === selectedStudentId);
@@ -47,19 +46,25 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
     }));
   };
 
+  const copyToClipboard = (text: string, message: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => alert(message))
+      .catch(err => console.error('Error copiant text:', err));
+  };
+
   const handleGenerate = async () => {
     if (!selectedStudent || !selectedSubject || !trimester) return;
 
     // Check Limits
     if (!checkDailyLimit(user)) {
-      setShowLimitModal(true); // Use new state
+      setShowLimitModal(true);
       return;
     }
-    setShowLimitModal(false); // Ensure it's false if limit is not hit
+    setShowLimitModal(false);
 
     setLoading(true);
-    setShowReportModal(true); // Use new state to show the report modal
-    setGeminiReport(''); 
+    setGeminiReport(''); // Clear previous report
+    setGeneratedPrompt(''); // Clear previous prompt
 
     const prompt = generatePrompt(
       selectedStudent,
@@ -72,7 +77,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
       user.gender 
     );
 
-    setGeneratedPrompt(prompt);
+    setGeneratedPrompt(prompt); // Display the generated prompt immediately
 
     try {
       const report = await fetchReportFromGemini(prompt);
@@ -92,8 +97,9 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
   const resetSubject = () => {
     setSelectedSubjectId('');
     setEvaluations({});
-    setShowReportModal(false); // Reset report modal visibility
-    setShowLimitModal(false); // Reset limit modal visibility
+    setGeneratedPrompt(''); // Clear report when changing subject
+    setGeminiReport('');
+    setShowLimitModal(false);
   };
 
   const resetStudent = () => {
@@ -216,7 +222,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
       <InfoHeader />
 
       {/* Limit Alert Modal */}
-      {showLimitModal && ( // Use new state
+      {showLimitModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center space-y-4 animate-fade-in">
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
@@ -228,54 +234,17 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
             </p>
             <div className="flex flex-col gap-2">
               <button 
-                onClick={() => setShowLimitModal(false)} // Use new state
+                onClick={() => setShowLimitModal(false)}
                 className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
               >
                 Entesos (Anar a Perfil)
               </button>
               <button 
-                onClick={() => setShowLimitModal(false)} // Use new state
+                onClick={() => setShowLimitModal(false)}
                 className="w-full py-2 text-slate-500 hover:text-slate-800"
               >
                 Tancar
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Report Display Modal */}
-      {showReportModal && ( // Use new state
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full h-[90vh] flex flex-col animate-fade-in">
-            <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <FileText className="text-blue-500" size={24} /> Informe Generat
-            </h3>
-            {loading ? (
-                <div className="flex-1 flex items-center justify-center text-slate-500">
-                    <Loader2 className="animate-spin mr-2" size={24} /> Generant informe...
-                </div>
-            ) : (
-                <div className="flex-1 overflow-y-auto space-y-4 text-sm text-slate-700 border p-4 rounded-lg bg-slate-50">
-                    {geminiReport ? (
-                        <div className="whitespace-pre-wrap">{geminiReport}</div>
-                    ) : (
-                        <p className="text-red-500">No s'ha pogut generar l'informe.</p>
-                    )}
-                    {/* Now showing prompt for debugging/transparency */}
-                    <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-400">
-                        <h4 className="font-bold mb-1">Prompt enviat a Gemini:</h4>
-                        <pre className="whitespace-pre-wrap bg-slate-100 p-2 rounded">{generatedPrompt}</pre>
-                    </div>
-                </div>
-            )}
-            <div className="mt-6 flex justify-end">
-                <button 
-                    onClick={() => setShowReportModal(false)} // Use new state
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
-                >
-                    Tancar
-                </button>
             </div>
           </div>
         </div>
@@ -358,6 +327,59 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
           })
         )}
       </div>
+
+      {/* Generated Report Section */}
+      {(generatedPrompt || geminiReport) && (
+        <div className="mt-12 p-6 bg-white rounded-xl border border-slate-200 shadow-sm space-y-6 animate-fade-in">
+          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <FileText className="text-blue-500" size={24} /> Informe Generat
+          </h3>
+
+          {loading ? (
+            <div className="flex items-center justify-center text-slate-500 py-8">
+              <Loader2 className="animate-spin mr-2" size={24} /> Generant informe...
+            </div>
+          ) : (
+            <>
+              {/* Gemini Report */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold text-slate-700">Informe de l'IA:</h4>
+                  {geminiReport && (
+                    <button 
+                      onClick={() => copyToClipboard(geminiReport, 'Informe copiat!')}
+                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                    >
+                      <Copy size={14} /> Copiar
+                    </button>
+                  )}
+                </div>
+                <div className="whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700">
+                  {geminiReport || <p className="text-red-500">No s'ha pogut generar l'informe.</p>}
+                </div>
+              </div>
+
+              {/* Generated Prompt */}
+              <div className="space-y-2 mt-6 pt-4 border-t border-slate-100">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold text-slate-700">Prompt enviat a Gemini:</h4>
+                  {generatedPrompt && (
+                    <button 
+                      onClick={() => copyToClipboard(generatedPrompt, 'Prompt copiat!')}
+                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                    >
+                      <Copy size={14} /> Copiar
+                    </button>
+                  )}
+                </div>
+                <div className="whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs text-slate-600">
+                  {generatedPrompt || <p className="text-slate-400">No s'ha generat cap prompt.</p>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Sticky Bottom Action */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-200 z-50 flex justify-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
