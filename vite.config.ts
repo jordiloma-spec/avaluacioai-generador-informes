@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    console.log('DEBUG (vite.config.ts): Loaded environment variables:', env); // AFEGIT PER DEPURAR
     return {
       server: {
         port: 3000,
