@@ -262,11 +262,11 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
                     ) : (
                         <p className="text-red-500">No s'ha pogut generar l'informe.</p>
                     )}
-                    {/* Optionally show prompt for debugging/transparency */}
-                    {/* <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-400">
+                    {/* Now showing prompt for debugging/transparency */}
+                    <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-400">
                         <h4 className="font-bold mb-1">Prompt enviat a Gemini:</h4>
                         <pre className="whitespace-pre-wrap bg-slate-100 p-2 rounded">{generatedPrompt}</pre>
-                    </div> */}
+                    </div>
                 </div>
             )}
             <div className="mt-6 flex justify-end">
