@@ -22,23 +22,32 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('SessionContextProvider: Component rendered, loading state:', loading);
+
   const fetchUserProfile = async (supabaseUser: User): Promise<UserProfile | null> => {
-    if (!supabaseUser) return null;
+    if (!supabaseUser) {
+      console.log('fetchUserProfile: No supabaseUser provided, returning null.');
+      return null;
+    }
+    console.log('fetchUserProfile: Attempting to fetch profile for user ID:', supabaseUser.id);
 
     const { data: profileData, error } = await supabase
       .from('profiles')
-      .select('first_name, last_name, avatar_url, current_course, gender') // Added 'gender'
+      .select('first_name, last_name, avatar_url, current_course, gender')
       .eq('id', supabaseUser.id)
       .single();
 
     if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
+      console.error('fetchUserProfile: Error fetching profile:', error);
+      // If there's an error fetching the profile, we still want to proceed with a basic profile
+      // to avoid getting stuck, and allow the user to potentially update their profile later.
     }
+    console.log('fetchUserProfile: Profile data from Supabase:', profileData);
 
     // Load local usage data (for premium status and daily usage)
     const storedDataKey = `user_premium_daily_usage_${supabaseUser.id}`;
     const localUsage = JSON.parse(localStorage.getItem(storedDataKey) || '{}');
+    console.log('fetchUserProfile: Local usage data:', localUsage);
 
     const userProfile: UserProfile = {
       id: supabaseUser.id,
@@ -50,19 +59,23 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       dailyUsage: localUsage.dailyUsage || { date: new Date().toISOString().split('T')[0], count: 0 },
     };
     setProfile(userProfile);
+    console.log('fetchUserProfile: Profile set:', userProfile);
     return userProfile;
   };
 
   const updateUserProfile = async (updatedProfile: Partial<UserProfile>) => {
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      console.warn('updateUserProfile: No user or profile available to update.');
+      return;
+    }
+    console.log('updateUserProfile: Attempting to update profile for user ID:', user.id, 'with:', updatedProfile);
 
-    // Prepare update object for Supabase profiles table
     const updateObject: { [key: string]: any } = {
       updated_at: new Date().toISOString(),
     };
     if (updatedProfile.name !== undefined) updateObject.first_name = updatedProfile.name;
     if (updatedProfile.currentCourse !== undefined) updateObject.current_course = updatedProfile.currentCourse;
-    if (updatedProfile.gender !== undefined) updateObject.gender = updatedProfile.gender; // Added gender to update
+    if (updatedProfile.gender !== undefined) updateObject.gender = updatedProfile.gender;
 
     const { error: updateError } = await supabase
       .from('profiles')
@@ -70,30 +83,42 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Error updating profile in Supabase:', updateError);
+      console.error('updateUserProfile: Error updating profile in Supabase:', updateError);
       return;
     }
+    console.log('updateUserProfile: Profile updated in Supabase.');
 
-    // Update local premium/daily usage data
     const storedDataKey = `user_premium_daily_usage_${user.id}`;
     const newLocalUsage = {
       isPremium: updatedProfile.isPremium !== undefined ? updatedProfile.isPremium : profile.isPremium,
       dailyUsage: updatedProfile.dailyUsage || profile.dailyUsage,
     };
     localStorage.setItem(storedDataKey, JSON.stringify(newLocalUsage));
+    console.log('updateUserProfile: Local usage data updated:', newLocalUsage);
 
     setProfile(prev => ({ ...prev!, ...updatedProfile }));
+    console.log('updateUserProfile: Profile state updated locally.');
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    console.log('logout: Attempting to sign out.');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('logout: Error signing out:', error);
+    } else {
+      console.log('logout: Signed out successfully.');
+    }
     setSession(null);
     setUser(null);
     setProfile(null);
+    setLoading(false); // Ensure loading is false after logout
+    console.log('logout: setLoading(false) called.');
   };
 
   useEffect(() => {
+    console.log('SessionContextProvider: useEffect triggered for auth state listener and initial session check.');
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('onAuthStateChange: Event:', event, 'Session:', currentSession);
       setSession(currentSession);
       setUser(currentSession?.user || null);
       if (currentSession?.user) {
@@ -102,19 +127,26 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         setProfile(null);
       }
       setLoading(false);
+      console.log('onAuthStateChange: setLoading(false) called from auth state change.');
     });
 
-    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      console.log('getSession: Initial session data:', initialSession);
       setSession(initialSession);
       setUser(initialSession?.user || null);
       if (initialSession?.user) {
         await fetchUserProfile(initialSession.user);
       }
       setLoading(false);
+      console.log('getSession: setLoading(false) called from initial session check.');
+    }).catch(error => {
+      console.error('getSession: Error fetching initial session:', error);
+      setLoading(false); // Ensure loading is false even if initial session fetch fails
+      console.log('getSession: setLoading(false) called due to error.');
     });
 
     return () => {
+      console.log('SessionContextProvider: Unsubscribing from auth listener.');
       authListener.subscription.unsubscribe();
     };
   }, []);
