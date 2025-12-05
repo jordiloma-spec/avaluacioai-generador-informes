@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppData, Student, Subject, Trimester, EvaluationState, Block, UserProfile } from '../types';
-import { generatePrompt, fetchReportFromGemini } from '../services/geminiService';
-import { checkDailyLimit, incrementDailyUsage } from '../services/storageService'; // Still using storageService for local usage logic
+import { generatePrompt, fetchReportFromGemini } from '../../services/geminiService';
+import { checkDailyLimit, incrementDailyUsage } from '../../services/storageService';
 import { Loader2, RefreshCw, FileText, ChevronLeft, User, BookOpen, Clock, Crown, AlertCircle } from 'lucide-react';
 
 interface EvaluatorProps {

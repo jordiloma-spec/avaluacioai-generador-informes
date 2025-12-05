@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile, Gender } from '../types';
-import { generateUniqueId } from '../services/storageService';
+import { generateUniqueId } from '../../services/storageService';
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react';
 import { useSession } from './SessionContextProvider';
 
