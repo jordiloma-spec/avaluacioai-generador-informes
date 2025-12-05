@@ -4,6 +4,7 @@ import { generateUniqueId } from '../../services/storageService';
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react';
 import { useSession } from './SessionContextProvider';
 import toast from 'react-hot-toast'; // Importa react-hot-toast
+import { ConfirmationModal } from './ConfirmationModal'; // Importa el nou modal de confirmació
 
 interface DataActions {
   students: {
@@ -119,6 +120,7 @@ const ProfileTab: React.FC<{
   });
   const [promoCode, setPromoCode] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [showCourseChangeConfirm, setShowCourseChangeConfirm] = useState(false);
 
   // Sync form state with user prop when user changes
   useEffect(() => {
@@ -140,14 +142,24 @@ const ProfileTab: React.FC<{
   const handleSave = async () => {
     // Check if course changed
     if (form.course !== user.currentCourse) {
-      if (data.students.length > 0 && window.confirm(`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`)) {
-         await onBulkUpdateStudentCourse(form.course); // Call the new prop to update students
+      if (data.students.length > 0) {
+        setShowCourseChangeConfirm(true); // Show custom confirmation modal
+        return; // Stop here, wait for modal confirmation
       }
     }
 
+    // If no course change or no students, proceed directly
     await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
     setIsDirty(false);
     toast.success("Perfil actualitzat correctament."); // Usa toast.success
+  };
+
+  const confirmCourseChange = async () => {
+    setShowCourseChangeConfirm(false);
+    await onBulkUpdateStudentCourse(form.course); // Call the new prop to update students
+    await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
+    setIsDirty(false);
+    toast.success("Perfil i cursos dels alumnes actualitzats correctament.");
   };
 
   const handlePromoCode = async () => {
@@ -296,7 +308,7 @@ const ProfileTab: React.FC<{
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                    <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-slate-700">Pla Gratuït</span>
-                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui</span>
+                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui}</span>
                    </div>
                    <div className="w-full bg-slate-200 rounded-full h-2.5">
                       <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}></div>
@@ -341,6 +353,17 @@ const ProfileTab: React.FC<{
              </div>
           )}
        </div>
+
+       <ConfirmationModal
+         isOpen={showCourseChangeConfirm}
+         onClose={() => setShowCourseChangeConfirm(false)}
+         onConfirm={confirmCourseChange}
+         title="Actualitzar curs dels alumnes?"
+         message={`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`}
+         confirmText="Sí, actualitzar"
+         cancelText="No, només el meu perfil"
+         variant="default"
+       />
     </div>
   );
 };
@@ -350,6 +373,10 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Student>>({});
+  const [showDeleteStudentsConfirm, setShowDeleteStudentsConfirm] = useState(false);
+  const [showBulkCourseConfirm, setShowBulkCourseConfirm] = useState(false);
+  const [bulkCourseToApply, setBulkCourseToApply] = useState<Course | null>(null);
+
 
   useEffect(() => {
     setNewStudent(prev => ({ ...prev, course: defaultCourse }));
@@ -400,22 +427,33 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
   };
 
   const deleteSelected = async () => {
-    if (!window.confirm(`Esborrar ${selectedIds.size} alumnes?`)) return;
+    setShowDeleteStudentsConfirm(true);
+  };
+
+  const confirmDeleteSelected = async () => {
+    setShowDeleteStudentsConfirm(false);
     await dataActions.students.delete(Array.from(selectedIds));
     setSelectedIds(new Set());
     toast.success(`${selectedIds.size} alumnes esborrats.`); // Usa toast.success
   };
 
   const bulkChangeCourse = async (newCourse: Course) => {
-    if (!window.confirm(`Canviar el curs a ${newCourse} per a ${selectedIds.size} alumnes?`)) return;
+    setBulkCourseToApply(newCourse);
+    setShowBulkCourseConfirm(true);
+  };
+
+  const confirmBulkChangeCourse = async () => {
+    setShowBulkCourseConfirm(false);
+    if (!bulkCourseToApply) return;
     for (const id of Array.from(selectedIds)) {
       const studentToUpdate = data.students.find(s => s.id === id);
       if (studentToUpdate) {
-        await dataActions.students.update({ ...studentToUpdate, course: newCourse });
+        await dataActions.students.update({ ...studentToUpdate, course: bulkCourseToApply });
       }
     }
     setSelectedIds(new Set());
     toast.success(`Curs actualitzat per a ${selectedIds.size} alumnes.`); // Usa toast.success
+    setBulkCourseToApply(null);
   };
 
   const startEdit = (s: Student) => { setEditingId(s.id); setEditForm(s); };
@@ -516,6 +554,28 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
           {data.students.length === 0 && <div className="p-8 text-center text-slate-400 italic">No hi ha alumnes.</div>}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteStudentsConfirm}
+        onClose={() => setShowDeleteStudentsConfirm(false)}
+        onConfirm={confirmDeleteSelected}
+        title="Esborrar alumnes seleccionats?"
+        message={`Estàs segur que vols esborrar ${selectedIds.size} alumnes? Aquesta acció és irreversible.`}
+        confirmText="Esborrar"
+        cancelText="Cancel·lar"
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showBulkCourseConfirm}
+        onClose={() => setShowBulkCourseConfirm(false)}
+        onConfirm={confirmBulkChangeCourse}
+        title="Canviar curs dels alumnes seleccionats?"
+        message={`Estàs segur que vols canviar el curs de ${selectedIds.size} alumnes a ${bulkCourseToApply}?`}
+        confirmText="Canviar curs"
+        cancelText="Cancel·lar"
+        variant="default"
+      />
     </div>
   );
 };
@@ -525,6 +585,9 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [showDeleteSubjectsConfirm, setShowDeleteSubjectsConfirm] = useState(false);
+  const [subjectToDeleteIds, setSubjectToDeleteIds] = useState<string[]>([]);
+
 
   const addSub = async () => {
     if (!newSubName) return;
@@ -534,11 +597,16 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
   };
 
   const cascadeDelete = async (ids: string[]) => {
-    if(window.confirm('Segur? S\'esborraran també els blocs.')) {
-      await dataActions.subjects.delete(ids);
-      setSelectedIds(new Set());
-      toast.success(`${ids.length} àrees esborrades.`); // Usa toast.success
-    }
+    setSubjectToDeleteIds(ids);
+    setShowDeleteSubjectsConfirm(true);
+  };
+
+  const confirmCascadeDelete = async () => {
+    setShowDeleteSubjectsConfirm(false);
+    await dataActions.subjects.delete(subjectToDeleteIds);
+    setSelectedIds(new Set());
+    toast.success(`${subjectToDeleteIds.length} àrees esborrades.`); // Usa toast.success
+    setSubjectToDeleteIds([]);
   };
 
   const handleImport = async (content: string) => {
@@ -609,7 +677,7 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
                     <div className="flex-1 px-4 font-medium text-slate-800">{s.name}</div>
                     <div className="w-20 px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                        <button onClick={() => startEdit(s)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"><Edit2 size={18}/></button>
-                       <button onClick={async () => { if(window.confirm('Segur?')) await cascadeDelete([s.id]); }} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
+                       <button onClick={async () => { cascadeDelete([s.id]); }} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
                     </div>
                   </>
                 )}
@@ -618,6 +686,17 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
            {data.subjects.length === 0 && <div className="p-8 text-center text-slate-400 italic">No hi ha àrees.</div>}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteSubjectsConfirm}
+        onClose={() => setShowDeleteSubjectsConfirm(false)}
+        onConfirm={confirmCascadeDelete}
+        title="Esborrar àrees i blocs?"
+        message={`Estàs segur que vols esborrar ${subjectToDeleteIds.length} àrea(es)? S'esborraran també tots els blocs, gradients i comentaris associats. Aquesta acció és irreversible.`}
+        confirmText="Esborrar tot"
+        cancelText="Cancel·lar"
+        variant="danger"
+      />
     </div>
   );
 };
@@ -762,6 +841,11 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', trims: [] as Trimester[] });
+  const [showDeleteBlocksConfirm, setShowDeleteBlocksConfirm] = useState(false);
+  const [blocksToDeleteIds, setBlocksToDeleteIds] = useState<string[]>([]);
+  const [showBulkTrimsConfirm, setShowBulkTrimsConfirm] = useState(false);
+  const [bulkTrimsToApply, setBulkTrimsToApply] = useState<Trimester[]>([]);
+
 
   useEffect(() => {
     if (!selectedSubjectId && data.subjects.length > 0) {
@@ -852,22 +936,34 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
   };
 
   const deleteSelected = async () => {
-    if (!window.confirm(`Esborrar ${selectedIds.size} blocs?`)) return;
-    await dataActions.blocks.delete(Array.from(selectedIds));
+    setBlocksToDeleteIds(Array.from(selectedIds));
+    setShowDeleteBlocksConfirm(true);
+  };
+
+  const confirmDeleteSelected = async () => {
+    setShowDeleteBlocksConfirm(false);
+    await dataActions.blocks.delete(blocksToDeleteIds);
     setSelectedIds(new Set());
-    toast.success(`${selectedIds.size} blocs esborrats.`); // Usa toast.success
+    toast.success(`${blocksToDeleteIds.length} blocs esborrats.`); // Usa toast.success
+    setBlocksToDeleteIds([]);
   };
 
   const bulkSetTrims = async (trims: Trimester[]) => {
-    if (!window.confirm(`Aplicar trimestres [${trims.join(',')}] a ${selectedIds.size} blocs?`)) return;
+    setBulkTrimsToApply(trims);
+    setShowBulkTrimsConfirm(true);
+  };
+
+  const confirmBulkSetTrims = async () => {
+    setShowBulkTrimsConfirm(false);
     for (const id of Array.from(selectedIds)) {
       const blockToUpdate = data.blocks.find(b => b.id === id);
       if (blockToUpdate) {
-        await dataActions.blocks.update({ ...blockToUpdate, trimesters: trims });
+        await dataActions.blocks.update({ ...blockToUpdate, trimesters: bulkTrimsToApply });
       }
     }
     setSelectedIds(new Set());
     toast.success(`Trimestres actualitzats per a ${selectedIds.size} blocs.`); // Usa toast.success
+    setBulkTrimsToApply([]);
   };
 
   const startEdit = (b: Block) => { setEditingId(b.id); setEditForm({ name: b.name, trims: b.trimesters }); };
@@ -997,7 +1093,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
                         </div>
                         <div className="w-20 px-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                            <button onClick={() => startEdit(b)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"><Edit2 size={18}/></button>
-                           <button onClick={async () => {if(window.confirm('Esborrar?')) await dataActions.blocks.delete([b.id])}} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
+                           <button onClick={async () => { setBlocksToDeleteIds([b.id]); setShowDeleteBlocksConfirm(true); }} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 size={18}/></button>
                         </div>
                       </>
                     )}
@@ -1011,6 +1107,28 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
             {activeBlocks.length === 0 && <div className="p-8 text-center text-slate-400 italic">No hi ha blocs en aquesta àrea.</div>}
          </div>
        </div>
+
+       <ConfirmationModal
+        isOpen={showDeleteBlocksConfirm}
+        onClose={() => setShowDeleteBlocksConfirm(false)}
+        onConfirm={confirmDeleteSelected}
+        title="Esborrar blocs i continguts?"
+        message={`Estàs segur que vols esborrar ${blocksToDeleteIds.length} bloc(s)? S'esborraran també tots els gradients i comentaris associats. Aquesta acció és irreversible.`}
+        confirmText="Esborrar tot"
+        cancelText="Cancel·lar"
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showBulkTrimsConfirm}
+        onClose={() => setShowBulkTrimsConfirm(false)}
+        onConfirm={confirmBulkSetTrims}
+        title="Assignar trimestres als blocs seleccionats?"
+        message={`Estàs segur que vols assignar els trimestres [${bulkTrimsToApply.join(', ')}] a ${selectedIds.size} bloc(s)?`}
+        confirmText="Assignar"
+        cancelText="Cancel·lar"
+        variant="default"
+      />
     </div>
   );
 };
