@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppData, UserProfile, Student, Subject, Block, Gradient, Comment, Course, Gender, Trimester } from './types';
-import { Evaluator } from './components/Evaluator';
-import { Settings } from './components/Settings';
-import { Login } from './components/Login';
+import { Evaluator } from './src/components/Evaluator';
+import { Settings } from './src/components/Settings';
+import { Login } from './src/components/Login';
 import { SessionContextProvider, useSession } from './src/components/SessionContextProvider';
 import { PenTool, Settings as SettingsIcon, Crown } from 'lucide-react';
 import {
@@ -12,44 +12,37 @@ import {
   createBlock, updateBlock, deleteBlocks,
   createGradient, updateGradient, deleteGradients,
   createComment, updateComment, deleteComments,
-} from './src/services/dataService'; // Ruta corregida
+} from './src/services/dataService';
 
 function AppContent() {
-  const { session, user, profile, loading: sessionLoading, updateUserProfile, logout } = useSession(); // Renamed 'loading' to 'sessionLoading'
+  const { session, user, profile, loading: sessionLoading, updateUserProfile, logout } = useSession();
   const [data, setData] = useState<AppData | null>(null);
-  const [appDataLoading, setAppDataLoading] = useState(true); // New state for app data loading
+  const [appDataLoading, setAppDataLoading] = useState(true);
   const [currentView, setCurrentView] = useState<'evaluator' | 'settings'>('evaluator');
 
-  const lastLoadedUserId = useRef<string | null>(null); // Ref to track the last user ID for which data was loaded
+  const lastLoadedUserId = useRef<string | null>(null);
 
-  // Function to fetch all user data from Supabase
   const loadAppData = useCallback(async (userId: string) => {
-    setAppDataLoading(true); // Set app data loading true
+    setAppDataLoading(true);
     const fetchedData = await fetchAllUserData(userId);
     setData(fetchedData);
-    setAppDataLoading(false); // Set app data loading false
+    setAppDataLoading(false);
   }, []);
 
   useEffect(() => {
     if (profile && user) {
-      // Only load app data if the user ID changes or if it's the initial load for this user.
-      // This prevents unnecessary re-fetches and unmounting of Evaluator when only profile.dailyUsage changes.
       if (user.id !== lastLoadedUserId.current) {
         loadAppData(profile.id);
         lastLoadedUserId.current = user.id;
       }
     } else {
-      setData(null); // Clear data if no profile
-      setAppDataLoading(false); // Ensure app data loading is false if no user
-      lastLoadedUserId.current = null; // Reset on logout
+      setData(null);
+      setAppDataLoading(false);
+      lastLoadedUserId.current = null;
     }
   }, [profile, user, loadAppData]);
 
-  // Handlers for data modifications (passed to Settings component)
   const handleSaveData = useCallback(async (newData: AppData) => {
-    // This function is now more of a placeholder if we were to save the whole object.
-    // Instead, individual CRUD operations will be used.
-    // For now, we just update the local state.
     setData(newData);
   }, []);
 
@@ -58,7 +51,6 @@ function AppContent() {
     await updateUserProfile(updatedProfile);
   }, [profile, updateUserProfile]);
 
-  // Individual CRUD operations for Settings component
   const dataActions = {
     students: {
       create: async (student: Omit<Student, 'id'>) => {
@@ -91,7 +83,6 @@ function AppContent() {
       },
       delete: async (ids: string[]) => {
         await deleteSubjects(ids);
-        // Also delete related blocks, gradients, comments
         const blocksToDelete = data!.blocks.filter(b => ids.includes(b.subject_id)).map(b => b.id);
         await deleteBlocks(blocksToDelete);
         await deleteGradients(data!.gradients.filter(g => blocksToDelete.includes(g.block_id)).map(g => g.id));
@@ -119,7 +110,6 @@ function AppContent() {
       },
       delete: async (ids: string[]) => {
         await deleteBlocks(ids);
-        // Also delete related gradients and comments
         await deleteGradients(data!.gradients.filter(g => ids.includes(g.block_id)).map(g => g.id));
         await deleteComments(data!.comments.filter(c => ids.includes(c.block_id)).map(c => c.id));
         setData(prev => ({
@@ -166,25 +156,20 @@ function AppContent() {
     },
   };
 
-  // 1. Handle initial session loading
   if (sessionLoading) {
     return <div className="flex h-screen items-center justify-center text-slate-500">Carregant sessió...</div>;
   }
 
-  // 2. If no session after loading, show login
   if (!session || !profile) {
     return <Login />;
   }
 
-  // 3. If session exists but app data is still loading or not loaded yet, show app data loading
-  if (appDataLoading || data === null) { // Explicitly check data === null here
+  if (appDataLoading || data === null) {
     return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades de l'aplicació...</div>;
   }
 
-  // 4. If everything is loaded, render main app
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Navigation Bar */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -225,7 +210,6 @@ function AppContent() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {currentView === 'evaluator' ? (
           <Evaluator 
@@ -237,10 +221,10 @@ function AppContent() {
           <Settings 
             data={data} 
             user={profile} 
-            onSave={handleSaveData} // This will be a no-op or handle full data refresh
+            onSave={handleSaveData}
             onUpdateUser={handleUpdateUser}
             onLogout={logout}
-            dataActions={dataActions} // Pass individual CRUD actions
+            dataActions={dataActions}
           />
         )}
       </main>

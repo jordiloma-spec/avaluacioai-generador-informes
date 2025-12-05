@@ -338,7 +338,7 @@ const ProfileTab: React.FC<{
 
 const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions: DataActions }> = ({ data, defaultCourse, dataActions }) => {
   const [newStudent, setNewStudent] = useState<Partial<Student>>({ name: '', gender: 'nen', course: defaultCourse });
-  const [selectedIds, setSelectedIds] = new Set<string>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Student>>({});
 
@@ -368,8 +368,6 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
       }
     });
     if (studentsToCreate.length > 0) {
-      // Batch creation is not directly supported by current dataActions.students.create,
-      // so we'll loop. In a real app, a batch insert function would be ideal.
       for (const student of studentsToCreate) {
         await dataActions.students.create(student);
       }
@@ -378,9 +376,11 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
   };
 
   const toggleSelect = (id: string) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
-    setSelectedIds(newSet);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+      return newSet;
+    });
   };
 
   const deleteSelected = async () => {
@@ -503,7 +503,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
 
 const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data, dataActions }) => {
   const [newSubName, setNewSubName] = useState('');
-  const [selectedIds, setSelectedIds] = new Set<string>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -571,7 +571,7 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
         <div className="divide-y divide-slate-100">
            {data.subjects.map(s => (
              <div key={s.id} className={`flex items-center px-4 py-3 hover:bg-slate-50 transition-colors group ${selectedIds.has(s.id) ? 'bg-blue-50/50' : ''}`}>
-                <div className="w-10 text-center"><Checkbox checked={selectedIds.has(s.id)} onChange={() => { const n = new Set(selectedIds); if(n.has(s.id)) n.delete(s.id); else n.add(s.id); setSelectedIds(n); }} /></div>
+                <div className="w-10 text-center"><Checkbox checked={selectedIds.has(s.id)} onChange={() => { setSelectedIds(prev => { const n = new Set(prev); if(n.has(s.id)) n.delete(s.id); else n.add(s.id); return n; }); }} /></div>
                 {editingId === s.id ? (
                   <>
                      <div className="flex-1 px-4"><input className="w-full border rounded px-2 py-1" value={editName} onChange={e => setEditName(e.target.value)} autoFocus /></div>
@@ -608,18 +608,18 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ tag: '', text: '' });
 
-    const blockGradients = data.gradients.filter(g => g.block_id === block.id); // Changed to block_id
-    const blockComments = data.comments.filter(c => c.block_id === block.id); // Changed to block_id
+    const blockGradients = data.gradients.filter(g => g.block_id === block.id);
+    const blockComments = data.comments.filter(c => c.block_id === block.id);
 
     const addGradient = async () => {
         if(!gTag || !gText) return;
-        await dataActions.gradients.create({ block_id: block.id, tag: gTag, text: gText }); // Changed to block_id
+        await dataActions.gradients.create({ block_id: block.id, tag: gTag, text: gText });
         setGTag(''); setGText('');
     };
 
     const addComment = async () => {
         if(!cTag || !cText) return;
-        await dataActions.comments.create({ block_id: block.id, tag: cTag, text: cText }); // Changed to block_id
+        await dataActions.comments.create({ block_id: block.id, tag: cTag, text: cText });
         setCTag(''); setCText('');
     };
 
@@ -633,12 +633,12 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
       if (type === 'gradient') {
         const gradientToUpdate = data.gradients.find(g => g.id === editingId);
         if (gradientToUpdate) {
-          await dataActions.gradients.update({ ...gradientToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text }); // Ensure block_id is passed
+          await dataActions.gradients.update({ ...gradientToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text });
         }
       } else {
         const commentToUpdate = data.comments.find(c => c.id === editingId);
         if (commentToUpdate) {
-          await dataActions.comments.update({ ...commentToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text }); // Ensure block_id is passed
+          await dataActions.comments.update({ ...commentToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text });
         }
       }
       setEditingId(null);
@@ -731,23 +731,22 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
   const [newBlockName, setNewBlockName] = useState('');
   const [newBlockTrims, setNewBlockTrims] = useState<Trimester[]>(['1', '2', '3']);
   
-  const [selectedIds, setSelectedIds] = new Set<string>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set<string>());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', trims: [] as Trimester[] });
 
-  // Ensure valid subject selection on load
   useEffect(() => {
     if (!selectedSubjectId && data.subjects.length > 0) {
       setSelectedSubjectId(data.subjects[0].id);
     }
   }, [data.subjects, selectedSubjectId]);
 
-  const activeBlocks = useMemo(() => data.blocks.filter(b => b.subject_id === selectedSubjectId), [data.blocks, selectedSubjectId]); // Changed to b.subject_id
+  const activeBlocks = useMemo(() => data.blocks.filter(b => b.subject_id === selectedSubjectId), [data.blocks, selectedSubjectId]);
 
   const addBlock = async () => {
     if (!newBlockName || !selectedSubjectId) return;
     await dataActions.blocks.create({
-      subject_id: selectedSubjectId, // Changed to subject_id
+      subject_id: selectedSubjectId,
       name: newBlockName,
       trimesters: newBlockTrims
     });
@@ -762,7 +761,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       if (r[0]) {
         const tRaw = r[1] ? r[1].match(/[123]/g) : ['1','2','3'];
         blocksToCreate.push({
-          subject_id: selectedSubjectId, // Changed to subject_id
+          subject_id: selectedSubjectId,
           name: r[0],
           trimesters: tRaw ? tRaw as Trimester[] : ['1','2','3']
         });
@@ -793,10 +792,10 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       const bId = blockMap.get(bName);
       if (bId) {
         if (type.startsWith('G')) {
-          await dataActions.gradients.create({ block_id: bId, tag, text }); // Changed to block_id
+          await dataActions.gradients.create({ block_id: bId, tag, text });
           gCount++;
         } else if (type.startsWith('C')) {
-          await dataActions.comments.create({ block_id: bId, tag, text }); // Changed to block_id
+          await dataActions.comments.create({ block_id: bId, tag, text });
           cCount++;
         }
       }
@@ -810,9 +809,11 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
   };
 
   const toggleSelect = (id: string) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
-    setSelectedIds(newSet);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+      return newSet;
+    });
   };
 
   const deleteSelected = async () => {
