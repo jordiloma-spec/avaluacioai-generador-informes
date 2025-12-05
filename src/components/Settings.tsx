@@ -3,6 +3,7 @@ import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester,
 import { generateUniqueId } from '../../services/storageService';
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react';
 import { useSession } from './SessionContextProvider';
+import toast from 'react-hot-toast'; // Importa react-hot-toast
 
 interface DataActions {
   students: {
@@ -146,16 +147,16 @@ const ProfileTab: React.FC<{
 
     await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
     setIsDirty(false);
-    alert("Perfil actualitzat correctament.");
+    toast.success("Perfil actualitzat correctament."); // Usa toast.success
   };
 
   const handlePromoCode = async () => {
     if (promoCode.trim().toLowerCase() === 'loma') {
       await onUpdateUser({ isPremium: true });
-      alert("Codi promocional acceptat! Ara tens accés Premium il·limitat.");
+      toast.success("Codi promocional acceptat! Ara tens accés Premium il·limitat."); // Usa toast.success
       setPromoCode('');
     } else {
-      alert("Codi promocional invàlid.");
+      toast.error("Codi promocional invàlid."); // Usa toast.error
     }
   };
 
@@ -163,13 +164,13 @@ const ProfileTab: React.FC<{
     // In a real app, this would redirect to Stripe/Paypal
     if (window.confirm(`Vols procedir al pagament de 12€ mitjançant ${method}? (Simulació)`)) {
        await onUpdateUser({ isPremium: true });
-       alert("Pagament realitzat amb èxit! El teu compte és ara Premium.");
+       toast.success("Pagament realitzat amb èxit! El teu compte és ara Premium."); // Usa toast.success
     }
   };
 
   const handlePasswordReset = async () => {
     if (!user.email) {
-      alert("No s'ha pogut trobar el teu correu electrònic per restablir la contrasenya.");
+      toast.error("No s'ha pogut trobar el teu correu electrònic per restablir la contrasenya."); // Usa toast.error
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
@@ -178,9 +179,9 @@ const ProfileTab: React.FC<{
 
     if (error) {
       console.error("Error sending password reset email:", error);
-      alert(`Error en enviar l'enllaç de recuperació: ${error.message}`);
+      toast.error(`Error en enviar l'enllaç de recuperació: ${error.message}`); // Usa toast.error
     } else {
-      alert("S'ha enviat un enllaç de recuperació de contrasenya al teu correu electrònic.");
+      toast.success("S'ha enviat un enllaç de recuperació de contrasenya al teu correu electrònic."); // Usa toast.success
     }
   };
 
@@ -295,7 +296,7 @@ const ProfileTab: React.FC<{
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                    <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-slate-700">Pla Gratuït</span>
-                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui</span>
+                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui}</span>
                    </div>
                    <div className="w-full bg-slate-200 rounded-full h-2.5">
                       <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}></div>
@@ -385,7 +386,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
       for (const student of studentsToCreate) {
         await dataActions.students.create(student);
       }
-      alert(`S'han importat ${studentsToCreate.length} alumnes.`);
+      toast.success(`S'han importat ${studentsToCreate.length} alumnes.`); // Usa toast.success
     }
   };
 
@@ -401,6 +402,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
     if (!window.confirm(`Esborrar ${selectedIds.size} alumnes?`)) return;
     await dataActions.students.delete(Array.from(selectedIds));
     setSelectedIds(new Set());
+    toast.success(`${selectedIds.size} alumnes esborrats.`); // Usa toast.success
   };
 
   const bulkChangeCourse = async (newCourse: Course) => {
@@ -412,6 +414,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
       }
     }
     setSelectedIds(new Set());
+    toast.success(`Curs actualitzat per a ${selectedIds.size} alumnes.`); // Usa toast.success
   };
 
   const startEdit = (s: Student) => { setEditingId(s.id); setEditForm(s); };
@@ -419,6 +422,7 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
     if (!editingId || !editForm.name) return;
     await dataActions.students.update(editForm as Student);
     setEditingId(null);
+    toast.success("Alumne actualitzat."); // Usa toast.success
   };
 
   return (
@@ -525,11 +529,13 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
     if (!newSubName) return;
     await dataActions.subjects.create({ name: newSubName });
     setNewSubName('');
+    toast.success("Àrea afegida."); // Usa toast.success
   };
 
   const cascadeDelete = async (ids: string[]) => {
     await dataActions.subjects.delete(ids);
     setSelectedIds(new Set());
+    toast.success(`${ids.length} àrees esborrades.`); // Usa toast.success
   };
 
   const handleImport = async (content: string) => {
@@ -539,7 +545,7 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
        for (const subject of subjectsToCreate) {
          await dataActions.subjects.create(subject);
        }
-       alert(`${subjectsToCreate.length} àrees importades.`);
+       toast.success(`${subjectsToCreate.length} àrees importades.`); // Usa toast.success
     }
   };
 
@@ -551,6 +557,7 @@ const SubjectsTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ da
           await dataActions.subjects.update({ ...subjectToUpdate, name: editName });
         }
         setEditingId(null);
+        toast.success("Àrea actualitzada."); // Usa toast.success
     }
   };
 
@@ -629,12 +636,14 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
         if(!gTag || !gText) return;
         await dataActions.gradients.create({ block_id: block.id, tag: gTag, text: gText });
         setGTag(''); setGText('');
+        toast.success("Gradient afegit."); // Usa toast.success
     };
 
     const addComment = async () => {
         if(!cTag || !cText) return;
         await dataActions.comments.create({ block_id: block.id, tag: cTag, text: cText });
         setCTag(''); setCText('');
+        toast.success("Comentari afegit."); // Usa toast.success
     };
 
     const startEdit = (item: { id: string, tag: string, text: string }) => {
@@ -649,11 +658,13 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
         if (gradientToUpdate) {
           await dataActions.gradients.update({ ...gradientToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text });
         }
+        toast.success("Gradient actualitzat."); // Usa toast.success
       } else {
         const commentToUpdate = data.comments.find(c => c.id === editingId);
         if (commentToUpdate) {
           await dataActions.comments.update({ ...commentToUpdate, block_id: block.id, tag: editForm.tag, text: editForm.text });
         }
+        toast.success("Comentari actualitzat."); // Usa toast.success
       }
       setEditingId(null);
     };
@@ -690,7 +701,7 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
                                     <span className="flex-1 text-slate-600">{g.text}</span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button onClick={() => startEdit(g)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={16}/></button>
-                                      <button onClick={async () => await dataActions.gradients.delete([g.id])} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
+                                      <button onClick={async () => { await dataActions.gradients.delete([g.id]); toast.success("Gradient esborrat."); }} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
                                     </div>
                                   </>
                                 )}
@@ -725,7 +736,7 @@ const BlockContentEditor: React.FC<{ block: Block; data: AppData; dataActions: D
                                     <span className="flex-1 text-slate-600">{c.text}</span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button onClick={() => startEdit(c)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={16}/></button>
-                                      <button onClick={async () => await dataActions.comments.delete([c.id])} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
+                                      <button onClick={async () => { await dataActions.comments.delete([c.id]); toast.success("Comentari esborrat."); }} className="text-slate-300 hover:text-red-500 p-1"><X size={16}/></button>
                                     </div>
                                   </>
                                 )}
@@ -765,10 +776,14 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       trimesters: newBlockTrims
     });
     setNewBlockName('');
+    toast.success("Bloc afegit."); // Usa toast.success
   };
 
   const handleImportBlocks = async (content: string) => {
-    if (!selectedSubjectId) return alert("Selecciona primer una àrea.");
+    if (!selectedSubjectId) {
+      toast.error("Selecciona primer una àrea."); // Usa toast.error
+      return;
+    }
     const rows = parseCSV(content);
     const blocksToCreate: Omit<Block, 'id'>[] = [];
     rows.forEach(r => {
@@ -785,12 +800,15 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       for (const block of blocksToCreate) {
         await dataActions.blocks.create(block);
       }
-      alert(`${blocksToCreate.length} blocs importats.`);
+      toast.success(`${blocksToCreate.length} blocs importats.`); // Usa toast.success
     }
   };
 
   const handleImportContent = async (content: string) => {
-    if (!selectedSubjectId) return alert("Selecciona primer una àrea.");
+    if (!selectedSubjectId) {
+      toast.error("Selecciona primer una àrea."); // Usa toast.error
+      return;
+    }
     const rows = parseCSV(content);
     let gCount = 0, cCount = 0;
     
@@ -816,9 +834,9 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
     }
 
     if (gCount + cCount > 0) {
-      alert(`Importats: ${gCount} Gradients i ${cCount} Comentaris.`);
+      toast.success(`Importats: ${gCount} Gradients i ${cCount} Comentaris.`); // Usa toast.success
     } else {
-      alert("No s'han trobat coincidències de noms de blocs. Revisa que els noms siguin exactes.");
+      toast.error("No s'han trobat coincidències de noms de blocs. Revisa que els noms siguin exactes."); // Usa toast.error
     }
   };
 
@@ -834,6 +852,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
     if (!window.confirm(`Esborrar ${selectedIds.size} blocs?`)) return;
     await dataActions.blocks.delete(Array.from(selectedIds));
     setSelectedIds(new Set());
+    toast.success(`${selectedIds.size} blocs esborrats.`); // Usa toast.success
   };
 
   const bulkSetTrims = async (trims: Trimester[]) => {
@@ -845,6 +864,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       }
     }
     setSelectedIds(new Set());
+    toast.success(`Trimestres actualitzats per a ${selectedIds.size} blocs.`); // Usa toast.success
   };
 
   const startEdit = (b: Block) => { setEditingId(b.id); setEditForm({ name: b.name, trims: b.trimesters }); };
@@ -855,6 +875,7 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
         await dataActions.blocks.update({ ...blockToUpdate, name: editForm.name, trimesters: editForm.trims });
       }
       setEditingId(null);
+      toast.success("Bloc actualitzat."); // Usa toast.success
     }
   };
 
@@ -1000,6 +1021,7 @@ export const Settings: React.FC<SettingsProps> = ({ data, user, onSave, onUpdate
     for (const student of data.students) {
       await dataActions.students.update({ ...student, course: newCourse });
     }
+    toast.success(`El curs de tots els alumnes s'ha actualitzat a ${newCourse}.`); // Usa toast.success
   };
 
   return (
