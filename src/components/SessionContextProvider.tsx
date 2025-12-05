@@ -125,50 +125,50 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    console.log('SessionContextProvider: useEffect triggered for auth state listener and initial session check.');
-    
-    // Listener for auth state changes (after initial load)
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log('onAuthStateChange: Event:', event, 'Session:', currentSession);
-      setSession(currentSession);
-      setUser(currentSession?.user || null);
-      if (currentSession?.user) {
-        // Only fetch profile if it's a new session or user changed
-        if (!profile || profile.id !== currentSession.user.id) {
-          await fetchUserProfile(currentSession.user);
-        }
-      } else {
-        setProfile(null);
-      }
-      // Do NOT set loading=false here, let the initial getSession handle it.
-      // This listener is for *changes* after initial load.
-    });
+    console.log('SessionContextProvider: Initial mount effect triggered.');
+    let authSubscription: { unsubscribe: () => void } | undefined;
 
-    // Handle initial session load
-    const loadInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
+        console.log('SessionContextProvider: Attempting to get initial session.');
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        console.log('getSession: Initial session data:', initialSession);
+        console.log('SessionContextProvider: Initial session result:', initialSession);
         setSession(initialSession);
         setUser(initialSession?.user || null);
         if (initialSession?.user) {
           await fetchUserProfile(initialSession.user);
         }
       } catch (error) {
-        console.error('getSession: Error fetching initial session:', error);
+        console.error('SessionContextProvider: Error during initial session fetch:', error);
       } finally {
-        setLoading(false); // Ensure loading is false after initial session fetch (success or failure)
-        console.log('getSession: setLoading(false) called from initial session check (finally).');
+        setLoading(false);
+        console.log('SessionContextProvider: Initial loading set to FALSE.');
       }
+
+      // Set up the listener after the initial load attempt
+      const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        console.log('SessionContextProvider: onAuthStateChange event:', event, 'currentSession:', currentSession);
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+        if (currentSession?.user) {
+          // Always fetch profile on auth state change if user exists, to ensure latest profile data
+          await fetchUserProfile(currentSession.user);
+        } else {
+          setProfile(null);
+        }
+      });
+      authSubscription = data.subscription;
     };
 
-    loadInitialSession();
+    initializeAuth();
 
     return () => {
-      console.log('SessionContextProvider: Unsubscribing from auth listener.');
-      authListener.subscription.unsubscribe();
+      console.log('SessionContextProvider: Cleanup - Unsubscribing from auth listener.');
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
-  }, []); // Empty dependency array means it runs once on mount
+  }, []); // Empty dependency array
 
   return (
     <SessionContext.Provider value={{ session, user, profile, loading, fetchUserProfile, updateUserProfile, logout }}>

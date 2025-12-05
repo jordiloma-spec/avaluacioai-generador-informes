@@ -234,6 +234,7 @@ function AppContent() {
 }
 
 export default function App() {
+  console.log('App component rendered');
   return (
     <SessionContextProvider>
       <AppContent />
