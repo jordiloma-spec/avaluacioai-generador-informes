@@ -31,18 +31,30 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
     console.log('fetchUserProfile: Attempting to fetch profile for user ID:', supabaseUser.id);
 
-    const { data: profileData, error } = await supabase
-      .from('profiles')
-      .select('first_name, last_name, avatar_url, current_course, gender')
-      .eq('id', supabaseUser.id)
-      .single();
+    let profileData = null;
+    let fetchError = null;
 
-    if (error) {
-      console.error('fetchUserProfile: Error fetching profile:', error);
-      // If there's an error fetching the profile, we still want to proceed with a basic profile
-      // to avoid getting stuck, and allow the user to potentially update their profile later.
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, avatar_url, current_course, gender')
+        .eq('id', supabaseUser.id)
+        .single();
+      
+      profileData = data;
+      fetchError = error;
+
+    } catch (e) {
+      console.error('fetchUserProfile: Unexpected error during Supabase profile fetch:', e);
+      fetchError = e; // Catch any unexpected errors
     }
-    console.log('fetchUserProfile: Profile data from Supabase:', profileData);
+
+    if (fetchError) {
+      console.error('fetchUserProfile: Error or no profile found:', fetchError);
+      // If error is 'PGRST116' (no rows found), it's expected for new users without profiles
+      // We'll proceed with default values.
+    }
+    console.log('fetchUserProfile: Profile data from Supabase (after fetch attempt):', profileData);
 
     // Load local usage data (for premium status and daily usage)
     const storedDataKey = `user_premium_daily_usage_${supabaseUser.id}`;
