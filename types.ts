@@ -7,6 +7,7 @@ export interface UserProfile {
   email: string;
   name: string; // From profiles table
   currentCourse: Course; // From profiles table
+  gender: 'mestre' | 'mestra'; // New: From profiles table
   isPremium: boolean; // Still managed locally for demo, or could be a column in profiles
   dailyUsage: {
     date: string; // YYYY-MM-DD

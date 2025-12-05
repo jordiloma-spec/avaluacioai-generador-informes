@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile } from '../types';
 import { generateUniqueId } from '../services/storageService'; // Keep generateUniqueId
-import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react'; // Added Mail icon
 import { useSession } from '../src/components/SessionContextProvider'; // Corrected import path
 
 interface SettingsProps {
@@ -84,12 +84,17 @@ const ProfileTab: React.FC<{
   const [form, setForm] = useState({ 
     name: user.name, 
     course: user.currentCourse,
+    gender: user.gender, // Added gender to form state
   });
   const [promoCode, setPromoCode] = useState('');
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    setIsDirty(form.name !== user.name || form.course !== user.currentCourse);
+    setIsDirty(
+      form.name !== user.name || 
+      form.course !== user.currentCourse ||
+      form.gender !== user.gender // Added gender to dirty check
+    );
   }, [form, user]);
 
   const handleSave = async () => {
@@ -104,7 +109,7 @@ const ProfileTab: React.FC<{
       }
     }
 
-    await onUpdateUser({ name: form.name, currentCourse: form.course });
+    await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender }); // Pass gender
     setIsDirty(false);
     alert("Perfil actualitzat correctament.");
   };
@@ -124,6 +129,23 @@ const ProfileTab: React.FC<{
     if (window.confirm(`Vols procedir al pagament de 12€ mitjançant ${method}? (Simulació)`)) {
        await onUpdateUser({ isPremium: true });
        alert("Pagament realitzat amb èxit! El teu compte és ara Premium.");
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user.email) {
+      alert("No s'ha pogut trobar el teu correu electrònic per restablir la contrasenya.");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo: `${window.location.origin}/update-password`, // You might need a dedicated page for password update
+    });
+
+    if (error) {
+      console.error("Error sending password reset email:", error);
+      alert(`Error en enviar l'enllaç de recuperació: ${error.message}`);
+    } else {
+      alert("S'ha enviat un enllaç de recuperació de contrasenya al teu correu electrònic.");
     }
   };
 
@@ -159,7 +181,7 @@ const ProfileTab: React.FC<{
                />
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"> {/* Changed to 3 columns */}
                <div>
                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Curs Actual</label>
                  <select 
@@ -173,18 +195,27 @@ const ProfileTab: React.FC<{
                </div>
                
                <div>
+                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Gènere (Mestre/a)</label>
+                 <select 
+                   value={form.gender} 
+                   onChange={e => setForm({...form, gender: e.target.value as 'mestre' | 'mestra'})}
+                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                 >
+                    <option value="mestre">Mestre</option>
+                    <option value="mestra">Mestra</option>
+                 </select>
+                 <p className="text-xs text-slate-400 mt-1">S'utilitza per adaptar el llenguatge de l'IA.</p>
+               </div>
+
+               <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contrasenya</label>
-                  <div className="relative">
-                    {/* Supabase handles password changes, typically via email flow */}
-                    <input 
-                      type="text" 
-                      value="********" // Masked
-                      disabled
-                      className="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg cursor-not-allowed"
-                    />
-                    <Key size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Gestiona la contrasenya des del portal de Supabase.</p>
+                  <button 
+                    onClick={handlePasswordReset}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Mail size={16} /> Restablir Contrasenya
+                  </button>
+                  <p className="text-xs text-slate-400 mt-1">Enviarem un enllaç al teu correu.</p>
                </div>
              </div>
 

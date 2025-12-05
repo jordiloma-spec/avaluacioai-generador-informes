@@ -27,7 +27,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     const { data: profileData, error } = await supabase
       .from('profiles')
-      .select('first_name, last_name, avatar_url, current_course')
+      .select('first_name, last_name, avatar_url, current_course, gender') // Added 'gender'
       .eq('id', supabaseUser.id)
       .single();
 
@@ -37,7 +37,6 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
 
     // Load local usage data (for premium status and daily usage)
-    // This part is still managed locally for the demo, but could be moved to Supabase 'profiles' table
     const storedDataKey = `user_premium_daily_usage_${supabaseUser.id}`;
     const localUsage = JSON.parse(localStorage.getItem(storedDataKey) || '{}');
 
@@ -46,6 +45,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       email: supabaseUser.email || '',
       name: profileData?.first_name || supabaseUser.email?.split('@')[0] || 'Usuari',
       currentCourse: (profileData?.current_course as Course) || '1r',
+      gender: profileData?.gender === 'mestre' ? 'mestre' : 'mestra', // Default to 'mestra'
       isPremium: localUsage.isPremium || false,
       dailyUsage: localUsage.dailyUsage || { date: new Date().toISOString().split('T')[0], count: 0 },
     };
@@ -56,14 +56,17 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   const updateUserProfile = async (updatedProfile: Partial<UserProfile>) => {
     if (!user || !profile) return;
 
-    // Update Supabase profiles table
+    // Prepare update object for Supabase profiles table
+    const updateObject: { [key: string]: any } = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updatedProfile.name !== undefined) updateObject.first_name = updatedProfile.name;
+    if (updatedProfile.currentCourse !== undefined) updateObject.current_course = updatedProfile.currentCourse;
+    if (updatedProfile.gender !== undefined) updateObject.gender = updatedProfile.gender; // Added gender to update
+
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({
-        first_name: updatedProfile.name,
-        current_course: updatedProfile.currentCourse,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateObject)
       .eq('id', user.id);
 
     if (updateError) {

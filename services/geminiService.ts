@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Student, Block, Gradient, Comment, EvaluationState, Trimester, Subject } from "../types";
+import { Student, Block, Gradient, Comment, EvaluationState, Trimester, Subject, UserProfile } from "../types";
 
 // NOTE: In a real production app, this call would likely happen on a backend to protect the API Key.
 // For this demo, we assume the environment variable is injected safely or we use a client-side key for personal use.
@@ -11,11 +11,12 @@ export const generatePrompt = (
   blocks: Block[],
   gradients: Gradient[],
   comments: Comment[],
-  evaluations: EvaluationState
+  evaluations: EvaluationState,
+  teacherGender: 'mestre' | 'mestra' // Added teacherGender
 ): string => {
   
   let prompt =
-    `Ets una mestra de primaria que esta avaluant als seus alumnes. Redacta en català un informe d’avaluació per a l’alumne ${student.name}, que és ${student.gender}, de ${student.course} de Primària.\n` +
+    `Ets un${teacherGender === 'mestre' ? '' : 'a'} ${teacherGender} de primaria que esta avaluant als seus alumnes. Redacta en català un informe d’avaluació per a l’alumne ${student.name}, que és ${student.gender}, de ${student.course} de Primària.\n` +
     `Trimestre: ${trimester}\nÀrea: ${subject.name}\n\nBlocs avaluats:\n\n`;
 
   blocks.forEach((block) => {
@@ -50,10 +51,10 @@ export const generatePrompt = (
 
 export const fetchReportFromGemini = async (prompt: string): Promise<string> => {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Corrected API key access
     if (!apiKey) throw new Error("API_KEY not found in environment variables");
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: apiKey as string }); // Cast apiKey to string
     
     // Using gemini-2.5-flash for fast text generation
     const response = await ai.models.generateContent({

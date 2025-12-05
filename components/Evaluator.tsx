@@ -68,7 +68,8 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
       activeBlocks,
       data.gradients,
       data.comments,
-      evaluations
+      evaluations,
+      user.gender // Pass user's gender
     );
 
     setGeneratedPrompt(prompt);
