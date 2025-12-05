@@ -3,6 +3,7 @@ import { AppData, Student, Subject, Trimester, EvaluationState, Block, UserProfi
 import { generatePrompt, fetchReportFromGemini } from '../../services/geminiService';
 import { checkDailyLimit, incrementDailyUsage } from '../../services/storageService';
 import { Loader2, RefreshCw, FileText, ChevronLeft, User, BookOpen, Clock, Crown, AlertCircle, Copy } from 'lucide-react';
+import toast from 'react-hot-toast'; // Importa react-hot-toast
 
 interface EvaluatorProps {
   data: AppData;
@@ -48,8 +49,11 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
   const copyToClipboard = (text: string, message: string) => {
     navigator.clipboard.writeText(text)
-      .then(() => alert(message))
-      .catch(err => console.error('Error copiant text:', err));
+      .then(() => toast.success(message)) // Changed alert to toast.success
+      .catch(err => {
+        console.error('Error copiant text:', err);
+        toast.error('Error copiant el text.'); // Added error toast
+      });
   };
 
   const handleGenerate = async () => {
@@ -89,6 +93,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
     } catch (e) {
       setGeminiReport('Error connectant amb Gemini.');
+      toast.error('Error generant l\'informe amb Gemini.'); // Added error toast
     } finally {
       setLoading(false);
     }
