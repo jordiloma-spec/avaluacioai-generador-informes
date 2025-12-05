@@ -3,12 +3,11 @@ export type Trimester = '1' | '2' | '3';
 export type Course = '1r' | '2n' | '3r' | '4t' | '5è' | '6è';
 
 export interface UserProfile {
-  id: string;
+  id: string; // Supabase user ID
   email: string;
-  password: string; // Stored locally for demo purposes
-  name: string;
-  currentCourse: Course;
-  isPremium: boolean;
+  name: string; // From profiles table
+  currentCourse: Course; // From profiles table
+  isPremium: boolean; // Still managed locally for demo, or could be a column in profiles
   dailyUsage: {
     date: string; // YYYY-MM-DD
     count: number;

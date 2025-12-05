@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile } from '../types';
-import { generateUniqueId, saveUser } from '../services/storageService';
+import { generateUniqueId } from '../services/storageService'; // Keep generateUniqueId
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag } from 'lucide-react';
+import { useSession } from './SessionContextProvider'; // Import useSession hook
 
 interface SettingsProps {
   data: AppData;
   user: UserProfile;
   onSave: (newData: AppData) => void;
-  onUpdateUser: (newUser: UserProfile) => void;
+  onUpdateUser: (newUser: Partial<UserProfile>) => void; // Changed to Partial<UserProfile>
   onLogout: () => void;
 }
 
@@ -74,24 +75,24 @@ const Checkbox: React.FC<{ checked: boolean; onChange: () => void; label?: strin
 
 const ProfileTab: React.FC<{ 
   user: UserProfile; 
-  onUpdateUser: (u: UserProfile) => void;
+  onUpdateUser: (u: Partial<UserProfile>) => void;
   data: AppData;
   onSaveData: (d: AppData) => void;
   onLogout: () => void; 
 }> = ({ user, onUpdateUser, data, onSaveData, onLogout }) => {
+  const { supabase } = useSession(); // Get supabase client from session context
   const [form, setForm] = useState({ 
     name: user.name, 
     course: user.currentCourse,
-    password: user.password 
   });
   const [promoCode, setPromoCode] = useState('');
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    setIsDirty(form.name !== user.name || form.course !== user.currentCourse || form.password !== user.password);
+    setIsDirty(form.name !== user.name || form.course !== user.currentCourse);
   }, [form, user]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Check if course changed
     if (form.course !== user.currentCourse) {
       if (data.students.length > 0 && window.confirm(`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`)) {
@@ -103,18 +104,14 @@ const ProfileTab: React.FC<{
       }
     }
 
-    const updatedUser = { ...user, name: form.name, currentCourse: form.course, password: form.password };
-    onUpdateUser(updatedUser);
-    saveUser(updatedUser);
+    await onUpdateUser({ name: form.name, currentCourse: form.course });
     setIsDirty(false);
     alert("Perfil actualitzat correctament.");
   };
 
-  const handlePromoCode = () => {
+  const handlePromoCode = async () => {
     if (promoCode.trim().toLowerCase() === 'loma') {
-      const updatedUser = { ...user, isPremium: true };
-      onUpdateUser(updatedUser);
-      saveUser(updatedUser);
+      await onUpdateUser({ isPremium: true });
       alert("Codi promocional acceptat! Ara tens accés Premium il·limitat.");
       setPromoCode('');
     } else {
@@ -122,12 +119,10 @@ const ProfileTab: React.FC<{
     }
   };
 
-  const handlePaymentSimulation = (method: string) => {
+  const handlePaymentSimulation = async (method: string) => {
     // In a real app, this would redirect to Stripe/Paypal
     if (window.confirm(`Vols procedir al pagament de 12€ mitjançant ${method}? (Simulació)`)) {
-       const updatedUser = { ...user, isPremium: true };
-       onUpdateUser(updatedUser);
-       saveUser(updatedUser);
+       await onUpdateUser({ isPremium: true });
        alert("Pagament realitzat amb èxit! El teu compte és ara Premium.");
     }
   };
@@ -180,14 +175,16 @@ const ProfileTab: React.FC<{
                <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contrasenya</label>
                   <div className="relative">
+                    {/* Supabase handles password changes, typically via email flow */}
                     <input 
                       type="text" 
-                      value={form.password} 
-                      onChange={e => setForm({...form, password: e.target.value})}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      value="********" // Masked
+                      disabled
+                      className="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg cursor-not-allowed"
                     />
                     <Key size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"/>
                   </div>
+                  <p className="text-xs text-slate-400 mt-1">Gestiona la contrasenya des del portal de Supabase.</p>
                </div>
              </div>
 
@@ -445,7 +442,7 @@ const StudentsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void; defau
 
 const SubjectsTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ data, onSave }) => {
   const [newSubName, setNewSubName] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -715,7 +712,8 @@ const BlocksTab: React.FC<{ data: AppData; onSave: (d: AppData) => void }> = ({ 
           trimesters: tRaw ? tRaw as Trimester[] : ['1','2','3']
         });
       }
-    });
+    }
+    );
     if (newBlocks.length) {
       onSave({ ...data, blocks: [...data.blocks, ...newBlocks] });
       alert(`${newBlocks.length} blocs importats.`);

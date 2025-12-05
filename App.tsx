@@ -4,48 +4,42 @@ import { getStoredData, saveStoredData } from './services/storageService';
 import { Evaluator } from './components/Evaluator';
 import { Settings } from './components/Settings';
 import { Login } from './components/Login';
+import { SessionContextProvider, useSession } from './components/SessionContextProvider'; // Import context provider and hook
 import { PenTool, Settings as SettingsIcon, Crown } from 'lucide-react';
 
-export default function App() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+function AppContent() {
+  const { session, user, profile, loading, updateUserProfile, logout } = useSession();
   const [data, setData] = useState<AppData | null>(null);
   const [currentView, setCurrentView] = useState<'evaluator' | 'settings'>('evaluator');
 
-  // Check for logged in user on mount (if we were persisting session, which we do implicitly via saving 'users' but not current session token in this demo, 
-  // we could check localStorage for a 'currentUserId'. For now, simple flow: always login on refresh for security in this demo context or keep state in memory).
-  // Ideally, we'd have a 'session' service. 
-
   useEffect(() => {
-    if (user) {
-      const loadedData = getStoredData(user.id);
+    if (profile) {
+      const loadedData = getStoredData(profile.id);
       setData(loadedData);
     } else {
       setData(null);
     }
-  }, [user]);
-
-  const handleLogin = (loggedInUser: UserProfile) => {
-    setUser(loggedInUser);
-    setCurrentView('evaluator'); // Default to evaluator on login
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setData(null);
-  };
+  }, [profile]);
 
   const handleSaveData = (newData: AppData) => {
-    if (!user) return;
+    if (!profile) return;
     setData(newData);
-    saveStoredData(user.id, newData);
+    saveStoredData(profile.id, newData);
   };
 
-  const handleUpdateUser = (updatedUser: UserProfile) => {
-    setUser(updatedUser);
+  const handleUpdateUser = async (updatedProfile: Partial<UserProfile>) => {
+    if (!profile) return;
+    // Update local usage data (premium status, daily usage)
+    const newProfile = { ...profile, ...updatedProfile };
+    await updateUserProfile(newProfile); // This will update Supabase and local storage for premium/usage
   };
 
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center text-slate-500">Carregant sessió...</div>;
+  }
+
+  if (!session || !profile) {
+    return <Login onLoginSuccess={() => { /* Handled by SessionContextProvider */ }} />;
   }
 
   if (!data) return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades...</div>;
@@ -61,8 +55,8 @@ export default function App() {
                 Avaluació<span className="font-light text-slate-600">AI</span>
               </span>
               <div className="hidden md:flex text-xs text-slate-500 items-center gap-1 bg-slate-100 px-2 py-1 rounded-full">
-                <span className="font-semibold">{user.name}</span> | {user.currentCourse}
-                {user.isPremium && <Crown size={12} className="text-yellow-500 ml-1 fill-yellow-500"/>}
+                <span className="font-semibold">{profile.name}</span> | {profile.currentCourse}
+                {profile.isPremium && <Crown size={12} className="text-yellow-500 ml-1 fill-yellow-500"/>}
               </div>
             </div>
             <div className="flex items-center space-x-2 md:space-x-4">
@@ -98,19 +92,27 @@ export default function App() {
         {currentView === 'evaluator' ? (
           <Evaluator 
             data={data} 
-            user={user}
+            user={profile}
             onUpdateUser={handleUpdateUser}
           />
         ) : (
           <Settings 
             data={data} 
-            user={user} 
+            user={profile} 
             onSave={handleSaveData} 
             onUpdateUser={handleUpdateUser}
-            onLogout={handleLogout}
+            onLogout={logout}
           />
         )}
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <SessionContextProvider>
+      <AppContent />
+    </SessionContextProvider>
   );
 }
