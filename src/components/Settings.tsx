@@ -296,7 +296,7 @@ const ProfileTab: React.FC<{
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                    <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-slate-700">Pla Gratuït</span>
-                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui}</span>
+                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui</span>
                    </div>
                    <div className="w-full bg-slate-200 rounded-full h-2.5">
                       <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}></div>
