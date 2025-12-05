@@ -12,7 +12,7 @@ import {
   createBlock, updateBlock, deleteBlocks,
   createGradient, updateGradient, deleteGradients,
   createComment, updateComment, deleteComments,
-} from './services/dataService'; // Import new data service
+} from './src/services/dataService'; // Ruta corregida
 
 function AppContent() {
   const { session, user, profile, loading, updateUserProfile, logout } = useSession();
