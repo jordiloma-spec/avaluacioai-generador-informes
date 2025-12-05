@@ -1,46 +1,12 @@
-import React, { useState } from 'react';
-import { UserProfile, Course } from '../types';
-import { loginUser, registerUser } from '../services/storageService';
-import { User, Lock, Mail, School, BookOpen } from 'lucide-react';
+import React from 'react';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { supabase } from '../src/integrations/supabase/client';
+import { Mail, User, BookOpen } from 'lucide-react'; // Keep icons for custom styling if needed
 
-interface LoginProps {
-  onLogin: (user: UserProfile) => void;
-}
-
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  
-  // Register specific fields
-  const [name, setName] = useState('');
-  const [course, setCourse] = useState<Course>('1r');
-  const [message, setMessage] = useState<{type: 'error' | 'success', text: string} | null>(null);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(null);
-
-    if (isRegistering) {
-      try {
-        if(!email || !name) throw new Error("Omple tots els camps.");
-        const newUser = registerUser(email, name, course);
-        setMessage({ type: 'success', text: `Registre complet! La teva contrasenya és: ${newUser.password}` });
-        // Auto fill for login
-        setPassword(newUser.password);
-        setIsRegistering(false); 
-      } catch (err: any) {
-        setMessage({ type: 'error', text: err.message });
-      }
-    } else {
-      const user = loginUser(email, password);
-      if (user) {
-        onLogin(user);
-      } else {
-        setMessage({ type: 'error', text: "Email o contrasenya incorrectes." });
-      }
-    }
-  };
+export const Login: React.FC = () => {
+  // The Auth component handles its own state and redirects via onAuthStateChange in SessionContextProvider
+  // We just need to render it.
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-emerald-400 p-4">
@@ -50,94 +16,78 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
              Avaluació<span className="font-light text-slate-600">AI</span>
            </h1>
            <p className="text-slate-500">
-             {isRegistering ? "Crea el teu perfil docent" : "Benvingut/da de nou"}
+             Inicia sessió o registra't
            </p>
         </div>
 
-        {message && (
-          <div className={`p-4 mb-6 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {message.text}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-           {isRegistering && (
-             <>
-               <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nom i Cognoms</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                      type="text" 
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                      placeholder="Ex: Maria Vila"
-                    />
-                  </div>
-               </div>
-               <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Curs Actual</label>
-                  <div className="relative">
-                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <select 
-                      value={course}
-                      onChange={(e) => setCourse(e.target.value as Course)}
-                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white" 
-                    >
-                      {['1r', '2n', '3r', '4t', '5è', '6è'].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-               </div>
-             </>
-           )}
-
-           <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                  placeholder="correu@escola.cat"
-                />
-              </div>
-           </div>
-
-           {!isRegistering && (
-             <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contrasenya</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                    placeholder="••••••••"
-                  />
-                </div>
-             </div>
-           )}
-
-           <button 
-             type="submit" 
-             className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
-           >
-             {isRegistering ? "Registrar-se i Rebre Contrasenya" : "Entrar"}
-           </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <button 
-            onClick={() => { setIsRegistering(!isRegistering); setMessage(null); }}
-            className="text-sm font-medium text-slate-500 hover:text-blue-600 underline"
-          >
-            {isRegistering ? "Ja tens compte? Inicia sessió" : "No tens compte? Registra't"}
-          </button>
-        </div>
+        <Auth
+          supabaseClient={supabase}
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#2563eb', // blue-600
+                  brandAccent: '#1d4ed8', // blue-700
+                },
+              },
+            },
+          }}
+          providers={[]} // No third-party providers for now
+          redirectTo={window.location.origin} // Redirect to root after auth
+          localization={{
+            variables: {
+              sign_in: {
+                email_label: 'Correu electrònic',
+                password_label: 'Contrasenya',
+                email_input_placeholder: 'El teu correu electrònic',
+                password_input_placeholder: 'La teva contrasenya',
+                button_label: 'Iniciar sessió',
+                social_provider_text: 'Inicia sessió amb {{provider}}',
+                link_text: 'Ja tens un compte? Inicia sessió',
+                no_account_text: 'No tens un compte?',
+              },
+              sign_up: {
+                email_label: 'Correu electrònic',
+                password_label: 'Contrasenya',
+                email_input_placeholder: 'El teu correu electrònic',
+                password_input_placeholder: 'Crea una contrasenya',
+                button_label: 'Registrar-se',
+                social_provider_text: 'Registra\'t amb {{provider}}',
+                link_text: 'No tens un compte? Registra\'t',
+                have_account_text: 'Ja tens un compte?',
+              },
+              forgotten_password: {
+                email_label: 'Correu electrònic',
+                email_input_placeholder: 'El teu correu electrònic',
+                button_label: 'Enviar instruccions de recuperació',
+                link_text: 'Has oblidat la teva contrasenya?',
+              },
+              update_password: {
+                password_label: 'Nova contrasenya',
+                password_input_placeholder: 'La teva nova contrasenya',
+                button_label: 'Actualitzar contrasenya',
+                link_text: 'Actualitzar contrasenya',
+              },
+              magic_link: {
+                email_input_placeholder: 'El teu correu electrònic',
+                button_label: 'Enviar enllaç màgic',
+                link_text: 'Enviar un enllaç màgic',
+                email_link_sent: 'Enllaç màgic enviat! Revisa el teu correu.',
+              },
+              verify_otp: {
+                email_input_placeholder: 'El teu correu electrònic',
+                phone_input_placeholder: 'El teu número de telèfon',
+                email_label: 'Correu electrònic',
+                phone_label: 'Número de telèfon',
+                token_label: 'Codi OTP',
+                token_input_placeholder: 'El teu codi OTP',
+                button_label: 'Verificar OTP',
+                link_text: 'Verificar OTP',
+              },
+            },
+          }}
+        />
       </div>
     </div>
   );
