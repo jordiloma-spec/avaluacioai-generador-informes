@@ -52,6 +52,7 @@ export const generatePrompt = (
 export const fetchReportFromGemini = async (prompt: string): Promise<string> => {
   try {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Corrected API key access
+    console.log("DEBUG: VITE_GEMINI_API_KEY:", apiKey ? "Loaded (length: " + apiKey.length + ")" : "NOT LOADED"); // Added debug log
     if (!apiKey) throw new Error("API_KEY not found in environment variables");
 
     const ai = new GoogleGenAI({ apiKey: apiKey as string }); // Cast apiKey to string
