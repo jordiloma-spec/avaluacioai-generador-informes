@@ -166,16 +166,22 @@ function AppContent() {
     },
   };
 
-  // Adjusted loading condition
-  if (sessionLoading || appDataLoading) { // Only show loading if session or app data is actively loading
-    return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades de l'aplicació...</div>;
+  // 1. Handle initial session loading
+  if (sessionLoading) {
+    return <div className="flex h-screen items-center justify-center text-slate-500">Carregant sessió...</div>;
   }
 
-  // After loading, if no session/profile, show login
+  // 2. If no session after loading, show login
   if (!session || !profile) {
     return <Login />;
   }
 
+  // 3. If session exists but app data is still loading or not loaded yet, show app data loading
+  if (appDataLoading || data === null) { // Explicitly check data === null here
+    return <div className="flex h-screen items-center justify-center text-slate-500">Carregant dades de l'aplicació...</div>;
+  }
+
+  // 4. If everything is loaded, render main app
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       {/* Navigation Bar */}
