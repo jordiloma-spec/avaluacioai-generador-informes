@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppData, UserProfile, Student, Subject, Block, Gradient, Comment, Course, Gender, Trimester } from './types';
-import { Evaluator } from './src/components/Evaluator';
-import { Settings } from './src/components/Settings';
-import { Login } from './src/components/Login';
-import { SessionContextProvider, useSession } from './src/components/SessionContextProvider';
+import { Evaluator } from './components/Evaluator';
+import { Settings } from './components/Settings';
+import { Login } from './components/Login';
+import { SessionContextProvider, useSession } from './components/SessionContextProvider';
 import { PenTool, Settings as SettingsIcon, Crown } from 'lucide-react';
 import {
   fetchAllUserData,
