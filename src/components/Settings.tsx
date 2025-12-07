@@ -156,10 +156,15 @@ const ProfileTab: React.FC<{
   };
 
   const confirmCourseChange = async () => {
-    setShowCourseChangeConfirm(false);
+    setShowCourseChangeConfirm(false); // Close modal first
     await onBulkUpdateStudentCourse(form.course); // Call the new prop to update students
     await saveProfileChanges(); // Save teacher's profile changes
     toast.success("Perfil i cursos dels alumnes actualitzats correctament.");
+  };
+
+  const handleCancelCourseChange = async () => {
+    await saveProfileChanges(); // Save the profile changes (teacher's course)
+    setShowCourseChangeConfirm(false); // Explicitly close the modal
   };
 
   const handlePromoCode = async () => {
@@ -356,7 +361,7 @@ const ProfileTab: React.FC<{
 
        <ConfirmationModal
          isOpen={showCourseChangeConfirm}
-         onClose={saveProfileChanges} // Modified: Now saves profile changes if user cancels student update
+         onClose={handleCancelCourseChange} // Modified: Now calls a specific handler to save profile and close modal
          onConfirm={confirmCourseChange}
          title="Actualitzar curs dels alumnes?"
          message={`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`}
