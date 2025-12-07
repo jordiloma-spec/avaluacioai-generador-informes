@@ -55,13 +55,14 @@ export const fetchReportFromGemini = async (prompt: string): Promise<string> => 
     console.log("DEBUG: VITE_GEMINI_API_KEY:", apiKey ? "Loaded (length: " + apiKey.length + ")" : "NOT LOADED"); // Added debug log
     if (!apiKey) throw new Error("API_KEY not found in environment variables");
 
-    const ai = new GoogleGenAI({ apiKey: apiKey as string }); // Cast apiKey to string
+    const ai = new GoogleGenAI({ apiKey: apiKey as string });
     
-    // Using gemini-2.5-flash for fast text generation
+    console.log("DEBUG: Sending prompt to Gemini API..."); // Nou log
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
+    console.log("DEBUG: Received response from Gemini API."); // Nou log
 
     return response.text || "No s'ha generat cap text.";
   } catch (error: any) {
