@@ -969,6 +969,97 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
     }
   };
 
+  const handleImportAllGradients = async (content: string) => {
+    const rows = parseCSV(content);
+    let subjectsCreated = 0;
+    let blocksCreated = 0;
+    let gradientsCreated = 0;
+
+    const currentSubjectsMap = new Map<string, Subject>(
+      data.subjects.map(s => [s.name.toLowerCase(), s])
+    );
+    const currentBlocksMap = new Map<string, Map<string, Block>>();
+    data.blocks.forEach(b => {
+      if (!currentBlocksMap.has(b.subject_id)) {
+        currentBlocksMap.set(b.subject_id, new Map());
+      }
+      currentBlocksMap.get(b.subject_id)?.set(b.name.toLowerCase(), b);
+    });
+
+    for (const row of rows) {
+      if (row.length < 4) {
+        console.warn('BlocksTab: Fila CSV ignorada per gradients (menys de 4 columnes):', row);
+        toast.error(`Fila ignorada per format incorrecte: ${row.join(', ')}`);
+        continue;
+      }
+      const subjectName = row[0].trim();
+      const blockName = row[1].trim();
+      const gradientTag = row[2].trim();
+      const gradientText = row[3].trim();
+
+      if (!subjectName || !blockName || !gradientTag || !gradientText) {
+        console.warn('BlocksTab: Fila CSV ignorada per gradients (valors buits):', row);
+        toast.error(`Fila ignorada per valors buits: ${row.join(', ')}`);
+        continue;
+      }
+
+      let currentSubject = currentSubjectsMap.get(subjectName.toLowerCase());
+      let subjectId: string;
+
+      if (!currentSubject) {
+        const newSubject = await dataActions.subjects.create({ name: subjectName });
+        if (newSubject) {
+          currentSubject = newSubject;
+          currentSubjectsMap.set(subjectName.toLowerCase(), newSubject);
+          subjectsCreated++;
+        } else {
+          toast.error(`Error creant l'àrea: ${subjectName}`);
+          continue;
+        }
+      }
+      subjectId = currentSubject.id;
+
+      let subjectBlocksMap = currentBlocksMap.get(subjectId);
+      if (!subjectBlocksMap) {
+        subjectBlocksMap = new Map<string, Block>();
+        currentBlocksMap.set(subjectId, subjectBlocksMap);
+      }
+
+      let currentBlock = subjectBlocksMap.get(blockName.toLowerCase());
+      let blockId: string;
+
+      if (!currentBlock) {
+        const newBlock = await dataActions.blocks.create({
+          subject_id: subjectId,
+          name: blockName,
+          trimesters: ['1', '2', '3'], // Default to all trimesters
+        });
+        if (newBlock) {
+          currentBlock = newBlock;
+          subjectBlocksMap.set(blockName.toLowerCase(), newBlock);
+          blocksCreated++;
+        } else {
+          toast.error(`Error creant el bloc: ${blockName} per a l'àrea ${subjectName}`);
+          continue;
+        }
+      }
+      blockId = currentBlock.id;
+
+      const newGradient = await dataActions.gradients.create({ block_id: blockId, tag: gradientTag, text: gradientText });
+      if (newGradient) {
+        gradientsCreated++;
+      } else {
+        toast.error(`Error creant el gradient: ${gradientTag} per al bloc ${blockName}`);
+      }
+    }
+
+    if (subjectsCreated > 0 || blocksCreated > 0 || gradientsCreated > 0) {
+      toast.success(`Importació de gradients completada: ${subjectsCreated} àrees, ${blocksCreated} blocs i ${gradientsCreated} gradients afegits.`);
+    } else {
+      toast.error("No s'ha trobat cap gradient vàlid per importar. Revisa el format del CSV.");
+    }
+  };
+
   const handleImportContent = async (content: string) => {
     if (!selectedSubjectId) {
       toast.error("Selecciona primer una àrea."); // Usa toast.error
@@ -1094,8 +1185,10 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
              <ImportSection label="Imp. Blocs (Àrea actual)" onImport={handleImportBlocks} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Nom Bloc, Trimestres<br/>Numeració, 1 2<br/>Càlcul, 1 2 3</div>} />
              {/* New Import All Blocks */}
              <ImportSection label="Imp. Blocs (Totes les Àrees)" onImport={handleImportAllBlocks} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Àrea, Bloc, T1(Si/No), T2(Si/No), T3(Si/No)<br/>Matemàtiques, Numeració, Si, Si, No<br/>Llengua, Expressió Oral, Si, No, Si</div>} />
+             {/* New Import All Gradients */}
+             <ImportSection label="Imp. Gradients (Totes les Àrees)" onImport={handleImportAllGradients} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Àrea, Bloc, Tag Gradient, Text Gradient<br/>Valors, Assoliment, Notable, Ha mostrat una bona adaptació...</div>} />
              {/* Existing Import Content */}
-             <ImportSection label="Imp. Continguts" onImport={handleImportContent} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">NomBloc; Tipus(G/C); Tag; Text<br/>Numeració; G; A; Assoliment Excel·lent...<br/>Numeració; C; Calc; Cal millorar càlcul...</div>} />
+             <ImportSection label="Imp. Comentaris (Àrea actual)" onImport={handleImportContent} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">NomBloc; Tipus(G/C); Tag; Text<br/>Numeració; G; A; Assoliment Excel·lent...<br/>Numeració; C; Calc; Cal millorar càlcul...</div>} />
           </div>
        </div>
 
