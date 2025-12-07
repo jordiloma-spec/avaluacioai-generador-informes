@@ -34,55 +34,67 @@ export const fetchAllUserData = async (userId: string): Promise<AppData> => {
 
 // --- Student CRUD ---
 export const createStudent = async (userId: string, student: Omit<Student, 'id'>): Promise<Student | null> => {
+  console.log('dataService: Intentant crear alumne a Supabase:', { ...student, user_id: userId });
   const { data, error } = await supabase.from('students').insert({ ...student, user_id: userId }).select().single();
   if (error) {
-    console.error('Error creating student:', error);
+    console.error('dataService: Error creant alumne:', error);
     return null;
   }
+  console.log('dataService: Alumne creat amb èxit:', data);
   return data;
 };
 
 export const updateStudent = async (student: Student): Promise<Student | null> => {
+  console.log('dataService: Intentant actualitzar alumne a Supabase:', student);
   const { data, error } = await supabase.from('students').update(student).eq('id', student.id).select().single();
   if (error) {
-    console.error('Error updating student:', error);
+    console.error('dataService: Error actualitzant alumne:', error);
     return null;
   }
+  console.log('dataService: Alumne actualitzat amb èxit:', data);
   return data;
 };
 
 export const deleteStudents = async (ids: string[]): Promise<void> => {
+  console.log('dataService: Intentant esborrar alumnes a Supabase amb IDs:', ids);
   const { error } = await supabase.from('students').delete().in('id', ids);
-  if (error) console.error('Error deleting students:', error);
+  if (error) console.error('dataService: Error esborrant alumnes:', error);
+  else console.log('dataService: Alumnes esborrats amb èxit.');
 };
 
 // --- Subject CRUD ---
 export const createSubject = async (userId: string, subject: Omit<Subject, 'id'>): Promise<Subject | null> => {
+  console.log('dataService: Intentant crear àrea a Supabase:', { ...subject, user_id: userId });
   const { data, error } = await supabase.from('subjects').insert({ ...subject, user_id: userId }).select().single();
   if (error) {
-    console.error('Error creating subject:', error);
+    console.error('dataService: Error creant àrea:', error);
     return null;
   }
+  console.log('dataService: Àrea creada amb èxit:', data);
   return data;
 };
 
 export const updateSubject = async (subject: Subject): Promise<Subject | null> => {
+  console.log('dataService: Intentant actualitzar àrea a Supabase:', subject);
   const { data, error } = await supabase.from('subjects').update(subject).eq('id', subject.id).select().single();
   if (error) {
-    console.error('Error updating subject:', error);
+    console.error('dataService: Error actualitzant àrea:', error);
     return null;
   }
+  console.log('dataService: Àrea actualitzada amb èxit:', data);
   return data;
 };
 
 export const deleteSubjects = async (ids: string[]): Promise<void> => {
+  console.log('dataService: Intentant esborrar àrees a Supabase amb IDs:', ids);
   const { error } = await supabase.from('subjects').delete().in('id', ids);
-  if (error) console.error('Error deleting subjects:', error);
+  if (error) console.error('dataService: Error esborrant àrees:', error);
+  else console.log('dataService: Àrees esborrades amb èxit.');
 };
 
 // --- Block CRUD ---
 export const createBlock = async (userId: string, block: Omit<Block, 'id'>): Promise<Block | null> => {
-  // Ensure subject_id is correctly passed to Supabase
+  console.log('dataService: Intentant crear bloc a Supabase:', { ...block, user_id: userId });
   const { data, error } = await supabase.from('blocks').insert({ 
     user_id: userId, 
     subject_id: block.subject_id, // Use subject_id
@@ -90,34 +102,38 @@ export const createBlock = async (userId: string, block: Omit<Block, 'id'>): Pro
     trimesters: block.trimesters
   }).select().single();
   if (error) {
-    console.error('Error creating block:', error);
+    console.error('dataService: Error creant bloc:', error);
     return null;
   }
+  console.log('dataService: Bloc creat amb èxit:', data);
   return data;
 };
 
 export const updateBlock = async (block: Block): Promise<Block | null> => {
-  // Ensure subject_id is correctly passed to Supabase
+  console.log('dataService: Intentant actualitzar bloc a Supabase:', block);
   const { data, error } = await supabase.from('blocks').update({
     subject_id: block.subject_id, // Use subject_id
     name: block.name,
     trimesters: block.trimesters
   }).eq('id', block.id).select().single();
   if (error) {
-    console.error('Error updating block:', error);
+    console.error('dataService: Error actualitzant bloc:', error);
     return null;
   }
+  console.log('dataService: Bloc actualitzat amb èxit:', data);
   return data;
 };
 
 export const deleteBlocks = async (ids: string[]): Promise<void> => {
+  console.log('dataService: Intentant esborrar blocs a Supabase amb IDs:', ids);
   const { error } = await supabase.from('blocks').delete().in('id', ids);
-  if (error) console.error('Error deleting blocks:', error);
+  if (error) console.error('dataService: Error esborrant blocs:', error);
+  else console.log('dataService: Blocs esborrats amb èxit.');
 };
 
 // --- Gradient CRUD ---
 export const createGradient = async (userId: string, gradient: Omit<Gradient, 'id'>): Promise<Gradient | null> => {
-  // Ensure block_id is correctly passed to Supabase
+  console.log('dataService: Intentant crear gradient a Supabase:', { ...gradient, user_id: userId });
   const { data, error } = await supabase.from('gradients').insert({ 
     user_id: userId, 
     block_id: gradient.block_id, // Use block_id
@@ -125,34 +141,38 @@ export const createGradient = async (userId: string, gradient: Omit<Gradient, 'i
     text: gradient.text
   }).select().single();
   if (error) {
-    console.error('Error creating gradient:', error);
+    console.error('dataService: Error creant gradient:', error);
     return null;
   }
+  console.log('dataService: Gradient creat amb èxit:', data);
   return data;
 };
 
 export const updateGradient = async (gradient: Gradient): Promise<Gradient | null> => {
-  // Ensure block_id is correctly passed to Supabase
+  console.log('dataService: Intentant actualitzar gradient a Supabase:', gradient);
   const { data, error } = await supabase.from('gradients').update({
     block_id: gradient.block_id, // Use block_id
     tag: gradient.tag,
     text: gradient.text
   }).eq('id', gradient.id).select().single();
   if (error) {
-    console.error('Error updating gradient:', error);
+    console.error('dataService: Error actualitzant gradient:', error);
     return null;
   }
+  console.log('dataService: Gradient actualitzat amb èxit:', data);
   return data;
 };
 
 export const deleteGradients = async (ids: string[]): Promise<void> => {
+  console.log('dataService: Intentant esborrar gradients a Supabase amb IDs:', ids);
   const { error } = await supabase.from('gradients').delete().in('id', ids);
-  if (error) console.error('Error deleting gradients:', error);
+  if (error) console.error('dataService: Error esborrant gradients:', error);
+  else console.log('dataService: Gradients esborrats amb èxit.');
 };
 
 // --- Comment CRUD ---
 export const createComment = async (userId: string, comment: Omit<Comment, 'id'>): Promise<Comment | null> => {
-  // Ensure block_id is correctly passed to Supabase
+  console.log('dataService: Intentant crear comentari a Supabase:', { ...comment, user_id: userId });
   const { data, error } = await supabase.from('comments').insert({ 
     user_id: userId, 
     block_id: comment.block_id, // Use block_id
@@ -160,27 +180,31 @@ export const createComment = async (userId: string, comment: Omit<Comment, 'id'>
     text: comment.text
   }).select().single();
   if (error) {
-    console.error('Error creating comment:', error);
+    console.error('dataService: Error creant comentari:', error);
     return null;
   }
+  console.log('dataService: Comentari creat amb èxit:', data);
   return data;
 };
 
 export const updateComment = async (comment: Comment): Promise<Comment | null> => {
-  // Ensure block_id is correctly passed to Supabase
+  console.log('dataService: Intentant actualitzar comentari a Supabase:', comment);
   const { data, error } = await supabase.from('comments').update({
     block_id: comment.block_id, // Use block_id
     tag: comment.tag,
     text: comment.text
   }).eq('id', comment.id).select().single();
   if (error) {
-    console.error('Error updating comment:', error);
+    console.error('dataService: Error actualitzant comentari:', error);
     return null;
   }
+  console.log('dataService: Comentari actualitzat amb èxit:', data);
   return data;
 };
 
 export const deleteComments = async (ids: string[]): Promise<void> => {
+  console.log('dataService: Intentant esborrar comentaris a Supabase amb IDs:', ids);
   const { error } = await supabase.from('comments').delete().in('id', ids);
-  if (error) console.error('Error deleting comments:', error);
+  if (error) console.error('dataService: Error esborrant comentaris:', error);
+  else console.log('dataService: Comentaris esborrats amb èxit.');
 };

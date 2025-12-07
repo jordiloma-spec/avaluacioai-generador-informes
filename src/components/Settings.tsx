@@ -394,7 +394,9 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
   };
 
   const handleImport = async (content: string) => {
+    console.log('StudentsTab: Iniciant importació de CSV.');
     const rows = parseCSV(content);
+    console.log('StudentsTab: Files CSV parsejades:', rows);
     const studentsToCreate: Omit<Student, 'id'>[] = [];
     rows.forEach(row => {
       if (row.length >= 3) { // Expect at least 3 columns: Name, Gender, Course
@@ -410,11 +412,15 @@ const StudentsTab: React.FC<{ data: AppData; defaultCourse: Course; dataActions:
          studentsToCreate.push({ name, gender, course: defaultCourse }); // Assign default course
       }
     });
+    console.log('StudentsTab: Alumnes a crear:', studentsToCreate);
     if (studentsToCreate.length > 0) {
       for (const student of studentsToCreate) {
+        console.log('StudentsTab: Creant alumne:', student);
         await dataActions.students.create(student);
       }
       toast.success(`S'han importat ${studentsToCreate.length} alumnes.`); // Usa toast.success
+    } else {
+      toast.error("No s'ha trobat cap alumne vàlid per importar. Revisa el format del CSV.");
     }
   };
 
@@ -871,7 +877,9 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       toast.error("Selecciona primer una àrea."); // Usa toast.error
       return;
     }
+    console.log('BlocksTab: Iniciant importació de blocs CSV.');
     const rows = parseCSV(content);
+    console.log('BlocksTab: Files CSV parsejades per blocs:', rows);
     const blocksToCreate: Omit<Block, 'id'>[] = [];
     rows.forEach(r => {
       if (r[0]) {
@@ -883,11 +891,14 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
         });
       }
     });
+    console.log('BlocksTab: Blocs a crear:', blocksToCreate);
     if (blocksToCreate.length) {
       for (const block of blocksToCreate) {
         await dataActions.blocks.create(block);
       }
       toast.success(`${blocksToCreate.length} blocs importats.`); // Usa toast.success
+    } else {
+      toast.error("No s'ha trobat cap bloc vàlid per importar. Revisa el format del CSV.");
     }
   };
 
@@ -896,13 +907,19 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       toast.error("Selecciona primer una àrea."); // Usa toast.error
       return;
     }
+    console.log('BlocksTab: Iniciant importació de continguts CSV.');
     const rows = parseCSV(content);
+    console.log('BlocksTab: Files CSV parsejades per continguts:', rows);
     let gCount = 0, cCount = 0;
     
     const blockMap = new Map(activeBlocks.map(b => [b.name.toLowerCase().trim(), b.id]));
+    console.log('BlocksTab: Mapa de blocs actius:', blockMap);
 
     for (const r of rows) {
-      if (r.length < 4) continue;
+      if (r.length < 4) {
+        console.warn('BlocksTab: Fila CSV ignorada per continguts (menys de 4 columnes):', r);
+        continue;
+      }
       const bName = r[0].toLowerCase().trim();
       const type = r[1].toUpperCase().trim();
       const tag = r[2].trim();
@@ -911,19 +928,25 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
       const bId = blockMap.get(bName);
       if (bId) {
         if (type.startsWith('G')) {
+          console.log('BlocksTab: Creant gradient per bloc', bName, ':', { block_id: bId, tag, text });
           await dataActions.gradients.create({ block_id: bId, tag, text });
           gCount++;
         } else if (type.startsWith('C')) {
+          console.log('BlocksTab: Creant comentari per bloc', bName, ':', { block_id: bId, tag, text });
           await dataActions.comments.create({ block_id: bId, tag, text });
           cCount++;
+        } else {
+          console.warn('BlocksTab: Tipus de contingut desconegut:', type, 'a la fila:', r);
         }
+      } else {
+        console.warn('BlocksTab: Bloc no trobat per nom:', bName, 'a la fila:', r);
       }
     }
 
     if (gCount + cCount > 0) {
       toast.success(`Importats: ${gCount} Gradients i ${cCount} Comentaris.`); // Usa toast.success
     } else {
-      toast.error("No s'han trobat coincidències de noms de blocs. Revisa que els noms siguin exactes."); // Usa toast.error
+      toast.error("No s'han trobat coincidències de noms de blocs o continguts vàlids. Revisa que els noms siguin exactes i el format."); // Usa toast.error
     }
   };
 
