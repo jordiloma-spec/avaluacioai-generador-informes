@@ -68,7 +68,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
 
     setLoading(true);
     setGeminiReport(''); // Clear previous report
-    setGeneratedPrompt(''); // Clear previous prompt
+    // Keep generatedPrompt, it will be overwritten or remain if generation fails
 
     const prompt = generatePrompt(
       selectedStudent,
@@ -340,48 +340,49 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
             <FileText className="text-blue-500" size={24} /> Informe Generat
           </h3>
 
-          {loading ? (
+          {/* Loading spinner - show when loading */}
+          {loading && (
             <div className="flex items-center justify-center text-slate-500 py-8">
               <Loader2 className="animate-spin mr-2" size={24} /> Generant informe...
             </div>
-          ) : (
-            <>
-              {/* Gemini Report */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-700">Informe de l'IA:</h4>
-                  {geminiReport && (
-                    <button 
-                      onClick={() => copyToClipboard(geminiReport, 'Informe copiat!')}
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
-                    >
-                      <Copy size={14} /> Copiar
-                    </button>
-                  )}
-                </div>
-                <div className="whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700">
-                  {geminiReport || <p className="text-red-500">No s'ha pogut generar l'informe.</p>}
-                </div>
-              </div>
+          )}
 
-              {/* Generated Prompt */}
-              <div className="space-y-2 mt-6 pt-4 border-t border-slate-100">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-700">Prompt enviat a Gemini:</h4>
-                  {generatedPrompt && (
-                    <button 
-                      onClick={() => copyToClipboard(generatedPrompt, 'Prompt copiat!')}
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
-                    >
-                      <Copy size={14} /> Copiar
-                    </button>
-                  )}
-                </div>
-                <div className="whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs text-slate-600">
-                  {generatedPrompt || <p className="text-slate-400">No s'ha generat cap prompt.</p>}
-                </div>
+          {/* Gemini Report - only show when not loading */}
+          {!loading && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <h4 className="font-bold text-slate-700">Informe de l'IA:</h4>
+                {geminiReport && (
+                  <button 
+                    onClick={() => copyToClipboard(geminiReport, 'Informe copiat!')}
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                  >
+                    <Copy size={14} /> Copiar
+                  </button>
+                )}
               </div>
-            </>
+              <div className="whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700">
+                {geminiReport || <p className="text-red-500">No s'ha pogut generar l'informe.</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Generated Prompt - always show if available */}
+          {generatedPrompt && (
+            <div className="space-y-2 mt-6 pt-4 border-t border-slate-100">
+              <div className="flex justify-between items-center">
+                <h4 className="font-bold text-slate-700">Prompt enviat a Gemini:</h4>
+                <button 
+                  onClick={() => copyToClipboard(generatedPrompt, 'Prompt copiat!')}
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                >
+                  <Copy size={14} /> Copiar
+                </button>
+              </div>
+              <div className="whitespace-pre-wrap bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs text-slate-600">
+                {generatedPrompt}
+              </div>
+            </div>
           )}
         </div>
       )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext, ReactNode } from
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
 import { UserProfile, Course } from '../types';
-// REMOVED: import { getLocalUserUsageData, saveLocalUserUsageData } from '../services/storageService';
+import toast from 'react-hot-toast'; // Importa react-hot-toast
 
 interface SessionContextType {
   session: Session | null;
@@ -70,6 +70,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   const updateUserProfile = async (updatedProfile: Partial<UserProfile>) => {
     if (!user || !profile) {
       console.warn('updateUserProfile: No user or profile available to update.');
+      toast.error("No s'ha pogut actualitzar el perfil: usuari no identificat.");
       return;
     }
 
@@ -93,6 +94,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     if (updateError) {
       console.error('updateUserProfile: Error updating profile in Supabase:', updateError);
+      toast.error(`Error en actualitzar el perfil: ${updateError.message}`);
       return;
     }
 
