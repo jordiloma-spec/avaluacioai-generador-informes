@@ -907,6 +907,68 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
     }
   };
 
+  const handleImportAllBlocks = async (content: string) => {
+    const rows = parseCSV(content);
+    let subjectsCreated = 0;
+    let blocksCreated = 0;
+  
+    const existingSubjectsMap = new Map<string, Subject>(
+      data.subjects.map(s => [s.name.toLowerCase(), s])
+    );
+  
+    for (const row of rows) {
+      if (row.length < 2) continue; // Minimum: Subject Name, Block Name
+  
+      const subjectName = row[0].trim();
+      const blockName = row[1].trim();
+  
+      if (!subjectName || !blockName) continue;
+  
+      let currentSubject = existingSubjectsMap.get(subjectName.toLowerCase());
+      let subjectId: string;
+  
+      if (!currentSubject) {
+        // Subject doesn't exist, create it
+        const newSubject = await dataActions.subjects.create({ name: subjectName });
+        if (newSubject) {
+          currentSubject = newSubject;
+          existingSubjectsMap.set(subjectName.toLowerCase(), newSubject);
+          subjectsCreated++;
+        } else {
+          toast.error(`Error creant l'àrea: ${subjectName}`);
+          continue; // Skip block creation if subject failed
+        }
+      }
+      subjectId = currentSubject.id;
+  
+      const trimesters: Trimester[] = [];
+      if (row[2]?.toLowerCase() === 'si') trimesters.push('1');
+      if (row[3]?.toLowerCase() === 'si') trimesters.push('2');
+      if (row[4]?.toLowerCase() === 'si') trimesters.push('3');
+  
+      // If no trimesters specified, default to all
+      const finalTrimesters = trimesters.length > 0 ? trimesters : ['1', '2', '3'];
+  
+      const newBlock = await dataActions.blocks.create({
+        subject_id: subjectId,
+        name: blockName,
+        trimesters: finalTrimesters,
+      });
+  
+      if (newBlock) {
+        blocksCreated++;
+      } else {
+        toast.error(`Error creant el bloc: ${blockName} per a l'àrea ${subjectName}`);
+      }
+    }
+  
+    if (subjectsCreated > 0 || blocksCreated > 0) {
+      toast.success(`Importació completada: ${subjectsCreated} àrees i ${blocksCreated} blocs afegits/actualitzats.`);
+    } else {
+      toast.error("No s'ha trobat cap àrea o bloc vàlid per importar. Revisa el format del CSV.");
+    }
+  };
+
   const handleImportContent = async (content: string) => {
     if (!selectedSubjectId) {
       toast.error("Selecciona primer una àrea."); // Usa toast.error
@@ -1028,7 +1090,11 @@ const BlocksTab: React.FC<{ data: AppData; dataActions: DataActions }> = ({ data
              </select>
           </div>
           <div className="flex flex-col items-end gap-2">
-             <ImportSection label="Imp. Blocs" onImport={handleImportBlocks} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Nom Bloc, Trimestres<br/>Numeració, 1 2<br/>Càlcul, 1 2 3</div>} />
+             {/* Existing Import Blocks for current subject */}
+             <ImportSection label="Imp. Blocs (Àrea actual)" onImport={handleImportBlocks} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Nom Bloc, Trimestres<br/>Numeració, 1 2<br/>Càlcul, 1 2 3</div>} />
+             {/* New Import All Blocks */}
+             <ImportSection label="Imp. Blocs (Totes les Àrees)" onImport={handleImportAllBlocks} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">Àrea, Bloc, T1(Si/No), T2(Si/No), T3(Si/No)<br/>Matemàtiques, Numeració, Si, Si, No<br/>Llengua, Expressió Oral, Si, No, Si</div>} />
+             {/* Existing Import Content */}
              <ImportSection label="Imp. Continguts" onImport={handleImportContent} helpContent={<div className="font-mono text-xs bg-slate-100 p-2 rounded">NomBloc; Tipus(G/C); Tag; Text<br/>Numeració; G; A; Assoliment Excel·lent...<br/>Numeració; C; Calc; Cal millorar càlcul...</div>} />
           </div>
        </div>
