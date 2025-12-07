@@ -139,26 +139,26 @@ const ProfileTab: React.FC<{
     );
   }, [form, user]);
 
-  const handleSave = async () => {
-    // Check if course changed
-    if (form.course !== user.currentCourse) {
-      if (data.students.length > 0) {
-        setShowCourseChangeConfirm(true); // Show custom confirmation modal
-        return; // Stop here, wait for modal confirmation
-      }
-    }
-
-    // If no course change or no students, proceed directly
+  const saveProfileChanges = async () => {
     await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
     setIsDirty(false);
-    toast.success("Perfil actualitzat correctament."); // Usa toast.success
+    toast.success("Perfil actualitzat correctament.");
+  };
+
+  const handleSave = async () => {
+    // Check if course changed AND there are students
+    if (form.course !== user.currentCourse && data.students.length > 0) {
+      setShowCourseChangeConfirm(true); // Show custom confirmation modal
+      return; // Stop here, wait for modal confirmation
+    }
+    // If no course change, or no students, or course changed but no students, proceed directly
+    await saveProfileChanges();
   };
 
   const confirmCourseChange = async () => {
     setShowCourseChangeConfirm(false);
     await onBulkUpdateStudentCourse(form.course); // Call the new prop to update students
-    await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
-    setIsDirty(false);
+    await saveProfileChanges(); // Save teacher's profile changes
     toast.success("Perfil i cursos dels alumnes actualitzats correctament.");
   };
 
@@ -356,7 +356,7 @@ const ProfileTab: React.FC<{
 
        <ConfirmationModal
          isOpen={showCourseChangeConfirm}
-         onClose={() => setShowCourseChangeConfirm(false)}
+         onClose={saveProfileChanges} // Modified: Now saves profile changes if user cancels student update
          onConfirm={confirmCourseChange}
          title="Actualitzar curs dels alumnes?"
          message={`Has canviat el teu curs a ${form.course}. Vols actualitzar el curs de tots els teus ${data.students.length} alumnes actuals a ${form.course}?`}
