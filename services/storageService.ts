@@ -1,18 +1,14 @@
 import { AppData, UserProfile, Course } from '../types';
 
-const DATA_PREFIX = 'avaluacio_data_';
+// The DATA_PREFIX and AppData management will be moved to Supabase via dataService.ts
+// This file will now only handle user-specific local storage for premium/daily usage.
+// REMOVED: USER_PREMIUM_DAILY_USAGE_PREFIX and related local storage functions.
 
-export const generateUniqueId = () => Math.random().toString(36).substr(2, 9);
+export const generateUniqueId = () => Math.random().toString(36).substr(2, 9); // Still useful for client-side temporary IDs if needed
 
-const INITIAL_DATA: AppData = {
-  students: [],
-  subjects: [],
-  blocks: [],
-  gradients: [],
-  comments: [],
-};
+// --- USAGE LOGIC (now interacts with UserProfile directly, which is sourced from Supabase) ---
 
-// --- USAGE LOGIC ---
+const FREE_USER_DAILY_LIMIT = 30; // Nou límit per a usuaris gratuïts
 
 export const checkDailyLimit = (user: UserProfile): boolean => {
   if (user.isPremium) return true;
@@ -24,7 +20,7 @@ export const checkDailyLimit = (user: UserProfile): boolean => {
     return true;
   }
 
-  return user.dailyUsage.count < 5;
+  return user.dailyUsage.count < FREE_USER_DAILY_LIMIT;
 };
 
 export const incrementDailyUsage = (user: UserProfile): UserProfile => {
@@ -40,25 +36,9 @@ export const incrementDailyUsage = (user: UserProfile): UserProfile => {
   }
 
   const updatedUser = { ...user, dailyUsage: newUsage };
-  // Note: In a real app, this would update the user profile in Supabase
-  // For this demo, we'll assume the `onUpdateUser` callback in App.tsx handles persistence.
+  // The actual persistence of dailyUsage is now handled in SessionContextProvider's updateUserProfile,
+  // which will write to Supabase. This function now just returns the updated UserProfile object.
   return updatedUser;
 };
 
-
-// --- DATA MANAGEMENT (PER USER) ---
-
-export const getStoredData = (userId: string): AppData => {
-  const key = `${DATA_PREFIX}${userId}`;
-  const stored = localStorage.getItem(key);
-  if (stored) {
-    return JSON.parse(stored);
-  }
-  // If no data exists for this user, return initial empty structure
-  return JSON.parse(JSON.stringify(INITIAL_DATA));
-};
-
-export const saveStoredData = (userId: string, data: AppData) => {
-  const key = `${DATA_PREFIX}${userId}`;
-  localStorage.setItem(key, JSON.stringify(data));
-};
+// REMOVED: getLocalUserUsageData and saveLocalUserUsageData

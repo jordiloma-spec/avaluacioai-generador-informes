@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppData, Student, Subject, Block, Gradient, Comment, Course, Trimester, UserProfile, Gender } from '../types';
-import { generateUniqueId } from '../../services/storageService';
+import { generateUniqueId, checkDailyLimit, incrementDailyUsage } from '../../services/storageService'; // Import checkDailyLimit and incrementDailyUsage
 import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronRight, Upload, HelpCircle, FileText, CheckSquare, Square, AlertCircle, User, Key, LogOut, Crown, CreditCard, Wallet, Tag, Mail } from 'lucide-react';
 import { useSession } from './SessionContextProvider';
 import toast from 'react-hot-toast'; // Importa react-hot-toast
@@ -212,6 +212,7 @@ const ProfileTab: React.FC<{
 
   const today = new Date().toISOString().split('T')[0];
   const usageCount = user.dailyUsage.date === today ? user.dailyUsage.count : 0;
+  const FREE_USER_DAILY_LIMIT = 30; // Obtenim el límit des d'aquí per mostrar-lo
 
   return (
     <div className="space-y-6">
@@ -334,12 +335,12 @@ const ProfileTab: React.FC<{
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                    <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-slate-700">Pla Gratuït</span>
-                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / 5 utilitzats avui</span>
+                      <span className="text-xs font-bold px-2 py-1 bg-slate-200 rounded text-slate-600">{usageCount} / {FREE_USER_DAILY_LIMIT} utilitzats avui</span>
                    </div>
                    <div className="w-full bg-slate-200 rounded-full h-2.5">
-                      <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}></div>
+                      <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min((usageCount / FREE_USER_DAILY_LIMIT) * 100, 100)}%` }}></div>
                    </div>
-                   <p className="text-xs text-slate-500 mt-2">Tens un límit de 5 informes per dia. Passa't a Premium per eliminar el límit.</p>
+                   <p className="text-xs text-slate-500 mt-2">Tens un límit de {FREE_USER_DAILY_LIMIT} informes per dia. Passa't a Premium per eliminar el límit.</p>
                 </div>
 
                 <div className="border-t border-slate-100 pt-6">
