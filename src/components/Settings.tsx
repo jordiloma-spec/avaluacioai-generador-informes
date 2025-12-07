@@ -117,6 +117,7 @@ const ProfileTab: React.FC<{
     name: user.name, 
     course: user.currentCourse,
     gender: user.gender,
+    geminiApiKey: user.geminiApiKey || '', // Nova: Clau API de Gemini
   });
   const [promoCode, setPromoCode] = useState('');
   const [isDirty, setIsDirty] = useState(false);
@@ -128,6 +129,7 @@ const ProfileTab: React.FC<{
       name: user.name,
       course: user.currentCourse,
       gender: user.gender,
+      geminiApiKey: user.geminiApiKey || '', // Nova: Clau API de Gemini
     });
   }, [user]);
 
@@ -135,12 +137,18 @@ const ProfileTab: React.FC<{
     setIsDirty(
       form.name !== user.name || 
       form.course !== user.currentCourse ||
-      form.gender !== user.gender
+      form.gender !== user.gender ||
+      form.geminiApiKey !== (user.geminiApiKey || '') // Nova: Clau API de Gemini
     );
   }, [form, user]);
 
   const saveProfileChanges = async () => {
-    await onUpdateUser({ name: form.name, currentCourse: form.course, gender: form.gender });
+    await onUpdateUser({ 
+      name: form.name, 
+      currentCourse: form.course, 
+      gender: form.gender,
+      geminiApiKey: form.geminiApiKey === '' ? null : form.geminiApiKey, // Nova: Guarda la clau API (o null si està buida)
+    });
     setIsDirty(false);
     toast.success("Perfil actualitzat correctament.");
   };
@@ -270,6 +278,19 @@ const ProfileTab: React.FC<{
                   </button>
                   <p className="text-xs text-slate-400 mt-1">Enviarem un enllaç al teu correu.</p>
                </div>
+             </div>
+
+             {/* Nova: Camp per a la clau API de Gemini */}
+             <div>
+               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Clau API de Gemini (Opcional)</label>
+               <input 
+                 type="text" 
+                 value={form.geminiApiKey} 
+                 onChange={e => setForm({...form, geminiApiKey: e.target.value})}
+                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                 placeholder="Introdueix la teva clau API de Gemini"
+               />
+               <p className="text-xs text-slate-400 mt-1">Si la proporciones, s'utilitzarà la teva clau en lloc de la general de l'aplicació.</p>
              </div>
 
              <div className="pt-4 border-t border-slate-100 flex justify-between items-center">

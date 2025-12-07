@@ -37,7 +37,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, avatar_url, current_course, gender, is_premium, daily_usage_date, daily_usage_count') // Added new columns
+        .select('first_name, last_name, avatar_url, current_course, gender, is_premium, daily_usage_date, daily_usage_count, gemini_api_key') // Added new columns
         .eq('id', supabaseUser.id)
         .single();
       
@@ -66,6 +66,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         date: profileData?.daily_usage_date || new Date().toISOString().split('T')[0], // Now from Supabase
         count: profileData?.daily_usage_count || 0, // Now from Supabase
       },
+      geminiApiKey: profileData?.gemini_api_key || undefined, // Nova: Clau API de Gemini
     };
     setProfile(userProfile);
     console.log('fetchUserProfile: Profile set:', userProfile);
@@ -90,6 +91,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       updateObject.daily_usage_date = updatedProfile.dailyUsage.date;
       updateObject.daily_usage_count = updatedProfile.dailyUsage.count;
     }
+    if (updatedProfile.geminiApiKey !== undefined) updateObject.gemini_api_key = updatedProfile.geminiApiKey; // Nova: Actualitza la clau API
 
     const { error: updateError } = await supabase
       .from('profiles')

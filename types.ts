@@ -13,6 +13,7 @@ export interface UserProfile {
     date: string; // YYYY-MM-DD, now from profiles table (daily_usage_date)
     count: number; // Now from profiles table (daily_usage_count)
   };
+  geminiApiKey?: string; // Nova: Clau API de Gemini personal de l'usuari
 }
 
 export interface Student {

@@ -84,7 +84,7 @@ export const Evaluator: React.FC<EvaluatorProps> = ({ data, user, onUpdateUser }
     setGeneratedPrompt(prompt); // Display the generated prompt immediately
 
     try {
-      const report = await fetchReportFromGemini(prompt);
+      const report = await fetchReportFromGemini(prompt, user.geminiApiKey); // Pass user's API key
       setGeminiReport(report);
       
       // Increment Usage on success and persist to Supabase via onUpdateUser

@@ -49,9 +49,9 @@ export const generatePrompt = (
   return prompt;
 };
 
-export const fetchReportFromGemini = async (prompt: string): Promise<string> => {
+export const fetchReportFromGemini = async (prompt: string, userApiKey?: string): Promise<string> => {
   try {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY; // Corrected API key access
+    const apiKey = userApiKey || import.meta.env.VITE_GEMINI_API_KEY; // Utilitza la clau de l'usuari si existeix, sinó la general
     console.log("DEBUG: VITE_GEMINI_API_KEY:", apiKey ? "Loaded (length: " + apiKey.length + ")" : "NOT LOADED"); // Added debug log
     if (!apiKey) throw new Error("API_KEY not found in environment variables");
 
