@@ -53,6 +53,8 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       console.error('fetchUserProfile: Error fetching profile from Supabase:', fetchError);
     }
     console.log('fetchUserProfile: Profile data from Supabase (after fetch attempt):', profileData);
+    console.log('fetchUserProfile: Raw gemini_api_key from Supabase:', profileData?.gemini_api_key);
+
 
     // Map Supabase data to UserProfile interface
     const userProfile: UserProfile = {
@@ -70,6 +72,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     };
     setProfile(userProfile);
     console.log('fetchUserProfile: Profile set:', userProfile);
+    console.log('fetchUserProfile: UserProfile geminiApiKey after mapping:', userProfile.geminiApiKey);
     return userProfile;
   };
 
@@ -79,6 +82,8 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       return;
     }
     console.log('updateUserProfile: Attempting to update profile for user ID:', user.id, 'with:', updatedProfile);
+    console.log('updateUserProfile: Incoming updatedProfile.geminiApiKey:', updatedProfile.geminiApiKey);
+
 
     const updateObject: { [key: string]: any } = {
       updated_at: new Date().toISOString(),
@@ -92,6 +97,8 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       updateObject.daily_usage_count = updatedProfile.dailyUsage.count;
     }
     if (updatedProfile.geminiApiKey !== undefined) updateObject.gemini_api_key = updatedProfile.geminiApiKey; // Nova: Actualitza la clau API
+
+    console.log('updateUserProfile: Supabase updateObject:', updateObject);
 
     const { error: updateError } = await supabase
       .from('profiles')
