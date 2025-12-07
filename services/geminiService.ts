@@ -57,9 +57,9 @@ export const fetchReportFromGemini = async (prompt: string, userApiKey?: string)
 
     const ai = new GoogleGenAI({ apiKey: apiKey as string });
     
-    console.log("DEBUG: Sending prompt to Gemini API with model gemini-1.5-pro..."); // Nou log
+    console.log("DEBUG: Sending prompt to Gemini API with model gemini-1.5-pro-latest..."); // Nou log
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-pro', // Canviat de 'gemini-2.5-flash' a 'gemini-1.5-pro'
+      model: 'gemini-1.5-pro-latest', // Canviat de 'gemini-1.5-pro' a 'gemini-1.5-pro-latest'
       contents: prompt,
     });
     console.log("DEBUG: Received response from Gemini API."); // Nou log
