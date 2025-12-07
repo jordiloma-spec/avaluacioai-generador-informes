@@ -39,7 +39,7 @@ export const generatePrompt = (
 
   prompt +=
     `Condicions:\n` +
-    `- L’informe no pot superar les 3000 paraules.\n` +
+    `- L’informe no pot superar les 300 paraules.\n` +
     `- Fes un sol redactat: sense fer subapartats.\n` +
     `- Fes que les frases tinguin coherencia de genere ( ${student.gender} ) i persona.\n` +
     `- Ha de ser un text coherent, amb to pedagògic i positiu.\n` +
